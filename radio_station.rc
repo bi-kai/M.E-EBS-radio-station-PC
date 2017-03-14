@@ -1,0 +1,503 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+// Generated Help ID header file
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "resource.hm"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Chinese (中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+#ifdef _WIN32
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE 4, 2\r\n"
+    "#pragma code_page(936)\r\n"
+    "#endif //_WIN32\r\n"
+    "#include ""res\\radio_station.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""l.chs\\afxres.rc""          // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON    DISCARDABLE     "res\\radio_station.ico"
+IDI_ICON1               ICON    DISCARDABLE     "res\\icon1.ico"
+IDI_ICON_OFF            ICON    DISCARDABLE     "res\\ICON_NOT.ico"
+IDI_ICON_RED            ICON    DISCARDABLE     "res\\ICON_ON.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOG DISCARDABLE  0, 0, 235, 55
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "关于 radio_station"
+FONT 9, "宋体"
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
+    LTEXT           "radio_station 1.0 版",IDC_STATIC,40,10,119,8,
+                    SS_NOPREFIX
+    LTEXT           "版权所有 (C) 2013",IDC_STATIC,40,25,119,8
+    DEFPUSHBUTTON   "确定",IDOK,178,7,50,14,WS_GROUP
+END
+
+IDD_RADIO_STATION_DIALOG DIALOGEX 0, 0, 525, 341
+STYLE DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
+    WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "应急广播系统主控平台"
+FONT 9, "宋体", 0, 0, 0x1
+BEGIN
+    CONTROL         "10W",IDC_RADIO_10W,"Button",BS_AUTORADIOBUTTON | 
+                    BS_CENTER | BS_VCENTER | BS_FLAT | WS_GROUP,246,225,28,
+                    10
+    CONTROL         "20W",IDC_RADIO_20W,"Button",BS_AUTORADIOBUTTON | 
+                    BS_CENTER | BS_VCENTER | BS_FLAT,280,225,28,10
+    CONTROL         "30W",IDC_RADIO_30W,"Button",BS_AUTORADIOBUTTON | 
+                    BS_CENTER | BS_VCENTER | BS_FLAT,314,225,28,10
+    CONTROL         "40W",IDC_RADIO_40W,"Button",BS_AUTORADIOBUTTON | 
+                    BS_CENTER | BS_VCENTER | BS_FLAT,348,225,28,10
+    CONTROL         "50W",IDC_RADIO_50W,"Button",BS_AUTORADIOBUTTON | 
+                    BS_CENTER | BS_VCENTER | BS_FLAT,382,225,28,10
+    CONTROL         "60W",IDC_RADIO_60W,"Button",BS_AUTORADIOBUTTON | 
+                    BS_CENTER | BS_VCENTER | BS_FLAT,416,225,28,10
+    PUSHBUTTON      "打开子板串口",IDC_BUTTON_CONNECTBOARD,39,31,61,25
+    PUSHBUTTON      "唤醒终端",IDC_BUTTON_WAKEUP,276,108,82,63
+    PUSHBUTTON      "开始广播",IDC_BUTTON_VOICE,379,67,132,27
+    PUSHBUTTON      "发送指令",IDC_BUTTON_ALARM,456,21,56,23
+    PUSHBUTTON      "手动认证",IDC_BUTTON_IDENTIFY,379,115,132,27
+    PUSHBUTTON      "高级功能及配置",IDC_BUTTON_ADVANCED,379,159,132,27
+    CONTROL         "广播",IDC_RADIO_BROADCAST,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,127,30,32,10,0,HIDC_RADIO_BROADCAST
+    CONTROL         "单播",IDC_RADIO_UNICASE,"Button",BS_AUTORADIOBUTTON,127,
+                    47,32,10
+    CONTROL         "组播",IDC_RADIO_MULTICAST,"Button",BS_AUTORADIOBUTTON,
+                    127,64,32,10
+    EDITTEXT        IDC_EDIT_UNICAST,237,41,110,15,ES_CENTER | 
+                    ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_EDIT_MULTICAST_START,237,60,109,15,ES_CENTER | 
+                    ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_EDIT_MULTICAST_END,237,78,109,15,ES_CENTER | 
+                    ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_EDIT_WAKEUP_SECONDS,167,133,27,14,ES_CENTER | 
+                    ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "目标终端ID号",IDC_STATIC,180,47,49,8
+    GROUPBOX        "唤醒终端",IDC_STATIC,117,7,249,179
+    GROUPBOX        "板卡连接及状态指示",IDC_STATIC,7,7,104,180
+    GROUPBOX        "报警指令",IDC_STATIC,373,7,145,45
+    CONTROL         "",IDC_MSCOMM1,"{648A5600-2C6E-101B-82B6-000000000014}",
+                    WS_TABSTOP,73,189,25,25
+    LTEXT           "目标终端起始ID号",IDC_STATIC,164,65,65,8
+    LTEXT           "目标终端截止ID号",IDC_STATIC,164,81,65,8
+    PUSHBUTTON      "板卡复位",IDC_BUTTON_BOARD_RST,12,225,45,34
+    LTEXT           "唤醒时间",IDC_STATIC,130,135,33,8
+    LTEXT           "波特率",IDC_STATIC,348,315,25,8
+    LTEXT           "校验位",IDC_STATIC,434,315,25,8
+    LTEXT           "子板端口",IDC_STATIC,251,300,33,8
+    LTEXT           "秒",IDC_STATIC,198,135,9,8
+    LTEXT           "数据位",IDC_STATIC,348,297,25,8
+    LTEXT           "停止位",IDC_STATIC,433,299,25,8
+    COMBOBOX        IDC_COMBO_COMSELECT,290,298,44,126,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO_SPEED,380,313,44,132,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO_PARITY,465,314,44,91,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO_DATABITS,380,297,44,81,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO_STOPBITS,465,297,44,74,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    ICON            IDI_ICON_OFF,IDC_STATIC_OPENOFF,14,32,20,20
+    COMBOBOX        IDC_COMBO_ALARM_TYPE,379,26,72,192,CBS_DROPDOWNLIST | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "语音广播",IDC_STATIC,372,55,146,46
+    EDITTEXT        IDC_EDIT_ID,167,113,52,14,ES_CENTER | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    CTEXT           " 子板未连接！",IDC_STATIC_BOARDCONNECT,39,70,60,17,
+                    SS_CENTERIMAGE | SS_SUNKEN | WS_BORDER
+    LTEXT           "电台ID",IDC_STATIC,138,116,25,8
+    PUSHBUTTON      "修改",IDC_BUTTON_MODIFY,218,133,32,14
+    PUSHBUTTON      "保存",IDC_BUTTON_SAVE,218,154,32,14
+    ICON            IDI_ICON_OFF,IDC_STATIC_BOARD_LED,14,67,20,20
+    LTEXT           "通信频点",IDC_STATIC,130,157,33,8
+    EDITTEXT        IDC_EDIT_FREQUENCE,168,154,26,14,ES_CENTER | 
+                    ES_AUTOHSCROLL
+    LTEXT           "MHz",IDC_STATIC,196,157,19,8
+    LTEXT           "发送频点",IDC_STATIC,25,270,33,8
+    EDITTEXT        IDC_EDIT_BOARD_FREQUENCY,61,268,30,14,ES_CENTER | 
+                    ES_AUTOHSCROLL
+    LTEXT           "MHz",IDC_STATIC,92,270,13,8
+    GROUPBOX        "广播子板串口连接",IDC_STATIC,12,18,94,81
+    GROUPBOX        "板卡及软件配置",IDC_STATIC,7,213,228,119
+    PUSHBUTTON      "修改",IDC_BUTTON_BOARD_MODIFY,11,288,45,34
+    PUSHBUTTON      "配置",IDC_BUTTON_BOARD_CONFIG,60,288,45,34
+    GROUPBOX        "唤醒方式",IDC_STATIC,124,19,235,80
+    GROUPBOX        "唤醒设置",IDC_STATIC,126,103,137,71
+    PUSHBUTTON      "频谱扫描",IDC_BUTTON_SCAN,60,225,45,34
+    CONTROL         "List1",IDC_LIST1,"SysListView32",LVS_SINGLESEL | 
+                    LVS_SHOWSELALWAYS | LVS_EDITLABELS | WS_TABSTOP,108,220,
+                    123,107,WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | 
+                    WS_EX_STATICEDGE
+    GROUPBOX        "电台认证",IDC_STATIC,372,103,146,46
+    GROUPBOX        "自动模式",IDC_STATIC,339,246,176,32
+    PUSHBUTTON      "启动文本转语音广播",IDC_BUTTON_TTS,434,258,77,14
+    PUSHBUTTON      "启动非MIC语音接入广播",IDC_BUTTON_NMIC,341,258,89,14
+    GROUPBOX        "发射整瓦数调整",IDC_STATIC,239,212,219,28
+    ICON            IDI_ICON_OFF,IDC_STATIC_YUNWEI,14,112,20,20
+    PUSHBUTTON      "打开运维串口",IDC_BUTTON_CONNECTYUNWEI,39,112,61,25
+    CTEXT           " 运维板未连接！",IDC_STATIC_BOARDCONNECT2,39,150,60,17,
+                    SS_CENTERIMAGE | SS_SUNKEN | WS_BORDER
+    ICON            IDI_ICON_OFF,IDC_STATIC_BOARD_LED_YW,14,148,20,20
+    GROUPBOX        "运维板串口连接",IDC_STATIC,12,101,94,76
+    GROUPBOX        "子板串口配置",IDC_STATIC,238,285,280,45
+    LTEXT           "运维板端口",IDC_STATIC,243,316,41,8
+    COMBOBOX        IDC_COMBO_COMSELECT_YW,290,314,44,126,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Slider1",IDC_SLIDER_POWER,"msctls_trackbar32",
+                    TBS_AUTOTICKS | TBS_TOP | TBS_ENABLESELRANGE | 
+                    WS_TABSTOP,237,258,82,14
+    GROUPBOX        "发送功率设置",IDC_STATIC,236,246,101,32
+    LTEXT           "15",IDC_STATIC_POWER,321,257,9,8
+    CONTROL         "",IDC_MSCOMM_YW,"{648A5600-2C6E-101B-82B6-000000000014}",
+                    WS_TABSTOP,103,190,25,25
+    LTEXT           "PAG",IDC_STATIC_POWER2,320,267,13,8
+    PUSHBUTTON      "电话/短信",IDC_BUTTON_ALARM2,460,215,56,23
+END
+
+
+#ifndef _MAC
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404B0"
+        BEGIN
+            VALUE "CompanyName", "\0"
+            VALUE "FileDescription", "radio_station Microsoft 基础类应用程序\0"
+            VALUE "FileVersion", "1, 0, 0, 1\0"
+            VALUE "InternalName", "radio_station\0"
+            VALUE "LegalCopyright", "版权所有 (C) 2013\0"
+            VALUE "LegalTrademarks", "\0"
+            VALUE "OriginalFilename", "radio_station.EXE\0"
+            VALUE "ProductName", "radio_station 应用程序\0"
+            VALUE "ProductVersion", "1, 0, 0, 1\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
+
+#endif    // !_MAC
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 48
+    END
+
+    IDD_RADIO_STATION_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 518
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 334
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_RADIO_STATION_DIALOG DLGINIT
+BEGIN
+    IDC_MSCOMM1, 0x376, 102, 0
+0x0013, 0x0000, 0x0043, 0x006f, 0x0070, 0x0079, 0x0072, 0x0069, 0x0067, 
+0x0068, 0x0074, 0x0020, 0x0028, 0x0063, 0x0029, 0x0020, 0x0031, 0x0039, 
+0x0039, 0x0034, 0x0020, 0x4321, 0x1234, 0x0008, 0x0000, 0x03ed, 0x0000, 
+0x03ed, 0x0000, 0x5601, 0x648a, 0x0000, 0x0006, 0x0000, 0x0001, 0x0400, 
+0x0000, 0x0200, 0x0000, 0x2580, 0x0000, 0x0000, 0x0008, 0x0000, 0x0000, 
+0x0000, 0x0000, 0x003f, 0x0000, 0x0001, 0x0000, 
+    IDC_COMBO_COMSELECT, 0x403, 5, 0
+0x4f43, 0x314d, "\000" 
+    IDC_COMBO_COMSELECT, 0x403, 5, 0
+0x4f43, 0x324d, "\000" 
+    IDC_COMBO_COMSELECT, 0x403, 5, 0
+0x4f43, 0x334d, "\000" 
+    IDC_COMBO_COMSELECT, 0x403, 5, 0
+0x4f43, 0x344d, "\000" 
+    IDC_COMBO_COMSELECT, 0x403, 5, 0
+0x4f43, 0x354d, "\000" 
+    IDC_COMBO_COMSELECT, 0x403, 5, 0
+0x4f43, 0x364d, "\000" 
+    IDC_COMBO_COMSELECT, 0x403, 5, 0
+0x4f43, 0x374d, "\000" 
+    IDC_COMBO_COMSELECT, 0x403, 5, 0
+0x4f43, 0x384d, "\000" 
+    IDC_COMBO_COMSELECT, 0x403, 5, 0
+0x4f43, 0x394d, "\000" 
+    IDC_COMBO_COMSELECT, 0x403, 6, 0
+0x4f43, 0x314d, 0x0030, 
+    IDC_COMBO_COMSELECT, 0x403, 6, 0
+0x4f43, 0x314d, 0x0031, 
+    IDC_COMBO_COMSELECT, 0x403, 6, 0
+0x4f43, 0x314d, 0x0032, 
+    IDC_COMBO_COMSELECT, 0x403, 6, 0
+0x4f43, 0x314d, 0x0033, 
+    IDC_COMBO_COMSELECT, 0x403, 6, 0
+0x4f43, 0x314d, 0x0034, 
+    IDC_COMBO_COMSELECT, 0x403, 6, 0
+0x4f43, 0x314d, 0x0035, 
+    IDC_COMBO_COMSELECT, 0x403, 6, 0
+0x4f43, 0x314d, 0x0036, 
+    IDC_COMBO_SPEED, 0x403, 5, 0
+0x3639, 0x3030, "\000" 
+    IDC_COMBO_SPEED, 0x403, 6, 0
+0x3931, 0x3032, 0x0030, 
+    IDC_COMBO_SPEED, 0x403, 6, 0
+0x3334, 0x3030, 0x0030, 
+    IDC_COMBO_SPEED, 0x403, 6, 0
+0x3635, 0x3030, 0x0030, 
+    IDC_COMBO_SPEED, 0x403, 6, 0
+0x3735, 0x3036, 0x0030, 
+    IDC_COMBO_SPEED, 0x403, 7, 0
+0x3131, 0x3235, 0x3030, "\000" 
+    IDC_COMBO_PARITY, 0x403, 5, 0
+0x4f4e, 0x454e, "\000" 
+    IDC_COMBO_PARITY, 0x403, 4, 0
+0x444f, 0x0044, 
+    IDC_COMBO_PARITY, 0x403, 5, 0
+0x5645, 0x4e45, "\000" 
+    IDC_COMBO_DATABITS, 0x403, 2, 0
+0x0038, 
+    IDC_COMBO_DATABITS, 0x403, 2, 0
+0x0037, 
+    IDC_COMBO_DATABITS, 0x403, 2, 0
+0x0036, 
+    IDC_COMBO_STOPBITS, 0x403, 2, 0
+0x0031, 
+    IDC_COMBO_STOPBITS, 0x403, 2, 0
+0x0032, 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e61, 0xd8b5, 0xf0d5, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e62, 0xe9ba, 0xd4c0, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e63, 0xa8cc, 0xe7b7, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 9, 0
+0x2e64, 0xe7b7, 0xa9b1, 0xb1b3, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e65, 0xb3b6, 0xa6ba, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e66, 0xf9b1, 0xa2b1, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e67, 0xa3ba, 0xa5d0, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e68, 0xa9b1, 0xead3, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 11, 0
+0x2e69, 0xf0bb, 0xbdc9, 0xacb1, 0xa2b7, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e6a, 0xacbb, 0xc2c6, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 9, 0
+0x2e6b, 0xe0c4, 0xafca, 0xf7c1, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 11, 0
+0x2e6c, 0xadc9, 0xd6c1, 0xf0bb, 0xd6d4, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e6d, 0xe6b3, 0xa6ba, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e6e, 0xf0bb, 0xd6d4, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 11, 0
+0x2e6f, 0xbbbd, 0xa8cd, 0xc2ca, 0xcab9, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e70, 0xa5b4, 0xe7b5, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 11, 0
+0x2e71, 0xdfb8, 0xa6b4, 0xb9d7, 0xe4c2, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e72, 0xacb1, 0xa8d5, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e73, 0xd0d6, 0xbeb6, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 7, 0
+0x2e74, 0xe7c4, 0xaecb, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 11, 0
+0x2e75, 0xe8c9, 0xb8b1, 0xc2ca, 0xcab9, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 11, 0
+0x2e76, 0xd6bf, 0xc0b2, 0xaecf, 0xf7bb, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 11, 0
+0x2e77, 0xe7c9, 0xe1bb, 0xe5b3, 0xbbcd, "\000" 
+    IDC_COMBO_ALARM_TYPE, 0x403, 9, 0
+0x2e78, 0xcbba, 0xd6d4, 0xa6ba, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 5, 0
+0x4f43, 0x314d, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 5, 0
+0x4f43, 0x324d, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 5, 0
+0x4f43, 0x334d, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 5, 0
+0x4f43, 0x344d, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 5, 0
+0x4f43, 0x354d, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 5, 0
+0x4f43, 0x364d, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 5, 0
+0x4f43, 0x374d, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 5, 0
+0x4f43, 0x384d, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 5, 0
+0x4f43, 0x394d, "\000" 
+    IDC_COMBO_COMSELECT_YW, 0x403, 6, 0
+0x4f43, 0x314d, 0x0030, 
+    IDC_COMBO_COMSELECT_YW, 0x403, 6, 0
+0x4f43, 0x314d, 0x0031, 
+    IDC_COMBO_COMSELECT_YW, 0x403, 6, 0
+0x4f43, 0x314d, 0x0032, 
+    IDC_COMBO_COMSELECT_YW, 0x403, 6, 0
+0x4f43, 0x314d, 0x0033, 
+    IDC_COMBO_COMSELECT_YW, 0x403, 6, 0
+0x4f43, 0x314d, 0x0034, 
+    IDC_COMBO_COMSELECT_YW, 0x403, 6, 0
+0x4f43, 0x314d, 0x0035, 
+    IDC_COMBO_COMSELECT_YW, 0x403, 6, 0
+0x4f43, 0x314d, 0x0036, 
+    IDC_MSCOMM_YW, 0x376, 102, 0
+0x0013, 0x0000, 0x0043, 0x006f, 0x0070, 0x0079, 0x0072, 0x0069, 0x0067, 
+0x0068, 0x0074, 0x0020, 0x0028, 0x0063, 0x0029, 0x0020, 0x0031, 0x0039, 
+0x0039, 0x0034, 0x0020, 0x4321, 0x1234, 0x0008, 0x0000, 0x03ed, 0x0000, 
+0x03ed, 0x0000, 0x5601, 0x648a, 0x0000, 0x0006, 0x0000, 0x0001, 0x0400, 
+0x0000, 0x0200, 0x0000, 0x2580, 0x0000, 0x0000, 0x0008, 0x0000, 0x0000, 
+0x0000, 0x0000, 0x003f, 0x0000, 0x0001, 0x0000, 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Cursor
+//
+
+IDC_CURSOR1             CURSOR  DISCARDABLE     "res\\cursor1.cur"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_ABOUTBOX            "关于 radio_station(&A)..."
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    AFX_IDS_APP_TITLE       "温馨提示"
+END
+
+#endif    // Chinese (中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+#ifdef _WIN32
+LANGUAGE 4, 2
+#pragma code_page(936)
+#endif //_WIN32
+#include "res\radio_station.rc2"  // non-Microsoft Visual C++ edited resources
+#include "l.chs\afxres.rc"          // Standard components
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

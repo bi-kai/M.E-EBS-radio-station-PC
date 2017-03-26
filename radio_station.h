@@ -13,7 +13,7 @@
 #endif
 
 #include "resource.h"		// main symbols
-#define SKINSPACE _T("/SPATH:") ////  注意：这个必须添加在#include的下面！！！
+
 /////////////////////////////////////////////////////////////////////////////
 // CRadio_stationApp:
 // See radio_station.cpp for the implementation of this class

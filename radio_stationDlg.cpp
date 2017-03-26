@@ -559,7 +559,9 @@ void CRadio_stationDlg::OnButtonWakeup()
 	frame_type[0]=0;//帧类型：唤醒帧01
 	frame_type[1]=1;
 
-	i=(int)((m_frequency-FREQUENCY_TERMINAL_START)*10);//频点获取，二进制化
+	int tmp1=(int)(m_frequency*10.0);
+
+	i=(int)(tmp1-(int)(FREQUENCY_TERMINAL_START*10));//频点获取，二进制化
 	int_bits(i,communication_fre_point,8);
 	
 	i=(int)m_radio_id;//电台ID
@@ -1094,8 +1096,7 @@ void CRadio_stationDlg::OnComm1()
 		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(TRUE);
 		timer_board_disconnect_times=0;//收到反馈则清零
-
-		m_frequency_native=FREQUENCY_TERMINAL_START+frame_receive[7]/10;
+		m_frequency_native=FREQUENCY_TERMINAL_START+(double)frame_receive[7]/10;
 		CString strTemp;
 		strTemp.Format(_T("%.1f"),m_frequency_native);
 		::WritePrivateProfileString("ConfigInfo","frequency_native",strTemp,".\\config_radiostation.ini");
@@ -1435,7 +1436,8 @@ void CRadio_stationDlg::OnButtonBoardConfig()
 	}
 	frame_board_control[5]=index_control_times;
 	frame_board_control[6]=2;
-	frame_board_control[7]=(unsigned char)((m_frequency_native-FREQUENCY_TERMINAL_START)*10);
+	int tmp=(int)((m_frequency_native-FREQUENCY_TERMINAL_START)*10);
+	frame_board_control[7]=(unsigned char)(tmp);
 	frame_board_control[8]=XOR(frame_board_control,8);
 	if ((frame_board_control[8]=='$')||(frame_board_control[8]==0x0d))
 	{

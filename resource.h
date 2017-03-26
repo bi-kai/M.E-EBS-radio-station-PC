@@ -18,9 +18,10 @@
 #define IDC_EDIT_MULTICAST_END          1005
 #define IDC_EDIT_MULTICAST_START        1006
 #define IDC_BUTTON_WAKEUP               1007
-#define IDC_BUTTON_CONNECTBOARD         1008
+#define IDC_BUTTON_BOARD_RST            1008
 #define IDC_BUTTON_ALARM                1009
 #define IDC_EDIT_WAKEUP_SECONDS         1010
+#define IDC_BUTTON_CONNECTBOARD         1011
 #define IDC_COMBO_COMSELECT             1018
 #define IDC_STATIC_OPENOFF              1019
 #define IDC_COMBO_SPEED                 1020
@@ -36,7 +37,6 @@
 #define IDC_STATIC_BOARDCONNECT         1031
 #define IDC_STATIC_BOARD_LED            1032
 #define IDC_EDIT_FREQUENCE              1033
-#define IDC_EDIT1                       1034
 #define IDC_STATIC_FRAMESEND_STATE      1035
 #define IDC_STATIC_FRAMESEND_LED        1036
 #define IDC_EDIT_BOARD_FREQUENCY        1037
@@ -46,6 +46,13 @@
 #define IDC_BUTTON_SCAN                 1041
 #define IDC_LIST1                       1042
 #define IDC_BUTTON_IDENTIFY             1043
+#define IDC_BUTTON_TTS                  1044
+#define IDC_BUTTON_NMIC                 1045
+#define IDC_RADIO_3G                    1046
+#define IDC_RADIO_PHONE                 1047
+#define IDC_RADIO_SATALLITE             1048
+#define IDC_RADIO_BEIDOU                1049
+#define IDC_RADIO_BROAD                 1050
 
 // Next default values for new objects
 // 
@@ -53,7 +60,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        133
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1044
+#define _APS_NEXT_CONTROL_VALUE         1047
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -40,13 +40,13 @@ public:
 	int		m_radio_wakeup;
 	CMSComm	m_comm;
 	double	m_radio_id;
-	double	m_frame_counter;
 	int		m_wakeup_time;
 	double	m_frequency;
 	double	m_frequency_native;
 	double	m_unicast_terminal_id;
 	double	m_multi_terminal_id_start;
 	double	m_multi_terminal_id_end;
+	int		m_frame_counter;
 	//}}AFX_DATA
 
 	// ClassWizard generated virtual function overrides
@@ -95,11 +95,15 @@ protected:
 	afx_msg void OnDestroy();
 	afx_msg void OnButtonVoice();
 	afx_msg void OnButtonIdentify();
+	afx_msg void OnButtonBoardReset();
+	afx_msg void OnButtonTTS();
+	afx_msg void OnButtonNMIC();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
 public:
+	int timer_board_disconnect_times;//定时器3统计尝试连接次数，达到3次则判断子板未连接
 //	LRESULT OnShowTask( WPARAM wParam,LPARAM lParam );
 	void ToTray();
 	void four_bits_ASCII(unsigned char* a,unsigned char* b,int len,int index);
@@ -141,6 +145,8 @@ private:
 	bool flag_board_modified;//修改下位机配置标志位
 //	bool flag_scan_button;//扫描按钮上文字切换
 	int index_resent_data_frame;//重传帧编号
+
+	CStatusBarCtrl *m_StatBar;
 
 };
 

@@ -203,22 +203,6 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 	
 	// TODO: Add extra initialization here
-	m_StatBar=new CStatusBarCtrl;
-	RECT m_Rect; 
-	GetClientRect(&m_Rect); //获取对话框的矩形区域
-	m_Rect.top=m_Rect.bottom-20; //设置状态栏的矩形区域
-	m_StatBar->Create(WS_BORDER|WS_VISIBLE|CBRS_BOTTOM,m_Rect,this,3); 
-	
-	int nParts[4]= {100, 200, 300,-1}; //分割尺寸
-	m_StatBar->SetParts(4, nParts); //分割状态栏
-	m_StatBar->SetText("这是第一个指示器",0,0); //第一个分栏加入"这是第一个指示器"
-	m_StatBar->SetText("这是第二个指示器",1,0); //以下类似
-										/*也可使用以下方式加入指示器文字
-										m_StatBar.SetPaneText(0,"这是第一个指示器",0);
-										其他操作：m_StatBar->SetIcon(3,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON3),FALSE));
-										//在第四个分栏中加入ID为IDI_ICON3的图标*/
-	m_StatBar->SetIcon(3,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON_OFF),FALSE));
-	m_StatBar->ShowWindow(SW_SHOW); 
 /*************************串口*****************************/
 	m_DCom=1;
 	m_DStopbits=1;
@@ -359,6 +343,23 @@ BOOL CRadio_stationDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 //	((CButton *)GetDlgItem(IDC_RADIO_BROADCAST))->SetCheck(TRUE);//选上
+/****************************状态栏**************************************/
+// 	m_StatBar=new CStatusBarCtrl;
+// 	RECT m_Rect; 
+// 	GetClientRect(&m_Rect); //获取对话框的矩形区域
+// 	m_Rect.top=m_Rect.bottom-20; //设置状态栏的矩形区域
+// 	m_StatBar->Create(WS_BORDER|WS_VISIBLE|CBRS_BOTTOM,m_Rect,this,3); 
+// 	
+// 	int nParts[4]= {100, 200, 300,-1}; //分割尺寸
+// 	m_StatBar->SetParts(4, nParts); //分割状态栏
+// 	m_StatBar->SetText("这是第一个指示器",0,0); //第一个分栏加入"这是第一个指示器"
+// 	m_StatBar->SetText("这是第二个指示器",1,0); //以下类似
+// 										/*也可使用以下方式加入指示器文字
+// 										m_StatBar.SetPaneText(0,"这是第一个指示器",0);
+// 										其他操作：m_StatBar->SetIcon(3,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON3),FALSE));
+// 										//在第四个分栏中加入ID为IDI_ICON3的图标*/
+// 	m_StatBar->SetIcon(3,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON_OFF),FALSE));
+// 	m_StatBar->ShowWindow(SW_SHOW); 
 /**************************RSSI列表配置**********************************/
 	m_rssi_list.ModifyStyle( 0, LVS_REPORT );// 报表模式
 	m_rssi_list.SetExtendedStyle(m_rssi_list.GetExtendedStyle() | LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);// 间隔线+行选中
@@ -507,7 +508,7 @@ void CRadio_stationDlg::OnRadioUnicase()
 void CRadio_stationDlg::OnButtonWakeup() 
 {
 	// TODO: Add your control notification handler code here//
-//	KillTimer(1);
+	KillTimer(1);
 	OnTimer(1);
 	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("唤醒帧未发送");
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
@@ -660,10 +661,10 @@ void CRadio_stationDlg::OnButtonWakeup()
 	{
 		index_data_times=0;
 	}
-	frame_board_data[frame_board_send_index]=index_data_times+0x30;
+	frame_board_data[frame_board_send_index]=index_data_times;
 	frame_board_send_index++;
-	frame_board_data[frame_board_send_index]=(unsigned char)m_wakeup_time;//唤醒秒数
-	frame_board_send_index++;
+// 	frame_board_data[frame_board_send_index]=(unsigned char)m_wakeup_time+0x30;//唤醒秒数
+// 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]=(index_after_gray/4)/256;
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]=(index_after_gray/4)%256;//最后一位是异或校验和
@@ -694,12 +695,17 @@ void CRadio_stationDlg::OnButtonWakeup()
 	if(m_comm.GetPortOpen())
 	{
 		m_comm.SetOutput(COleVariant(Array));//发送数据
+		
+	}
+	
+	if(m_comm.GetPortOpen())
+	{
 		m_frame_counter++;//帧计数器自增
 		CString strTemp;
 		strTemp.Format(_T("%d"),m_frame_counter);
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
-	}	
+	}
 
 }
 //frame_board_bits

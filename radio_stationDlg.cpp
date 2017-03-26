@@ -1554,7 +1554,8 @@ void CRadio_stationDlg::OnButtonScan()
 
 
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
-		SetTimer(1,12000,NULL);//12秒后使能
+		GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->EnableWindow(FALSE);
+		SetTimer(1,11000,NULL);//12秒后使能
 
 
 }
@@ -1565,6 +1566,7 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 	if (nIDEvent==1)
 	{
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->EnableWindow(TRUE);
 		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("频谱扫描完成");
 		m_frame_send_state.SetIcon(m_hIconRed);
 		KillTimer(1);

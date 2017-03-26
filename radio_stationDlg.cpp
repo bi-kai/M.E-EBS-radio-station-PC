@@ -6,7 +6,8 @@
 #include "radio_stationDlg.h"
 #include "encrypt.h"
 #include <math.h>
-#include <windows.h> 
+#include <windows.h>
+#include "stdlib.h" 
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -163,6 +164,7 @@ BEGIN_MESSAGE_MAP(CRadio_stationDlg, CDialog)
 	ON_WM_CLOSE()
 	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_BUTTON_VOICE, OnButtonVoice)
+	ON_BN_CLICKED(IDC_BUTTON_IDENTIFY, OnButtonIdentify)
 	//}}AFX_MSG_MAP
 	ON_MESSAGE(WM_SHOWTASK,OnShowTask)
 END_MESSAGE_MAP()
@@ -251,6 +253,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	GetDlgItem(IDC_EDIT_MULTICAST_END)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
 	GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(FALSE);
 
 	m_comm.SetCommPort(1); //选择com1
 	m_comm.SetInputMode(1); //输入方式为二进制方式
@@ -454,10 +457,12 @@ void CRadio_stationDlg::OnRadioUnicase()
 void CRadio_stationDlg::OnButtonWakeup() 
 {
 	// TODO: Add your control notification handler code here//
-	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("唤醒帧发送...");
+	KillTimer(1);
+	OnTimer(1);
+	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("唤醒帧未发送");
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 	m_frame_send_state.SetIcon(m_hIconOff);
-	KillTimer(1);
+	
 
 	int k=0;
 	int i=0;
@@ -611,16 +616,17 @@ void CRadio_stationDlg::OnButtonWakeup()
 	four_bits_ASCII(frame_board_after_gray,frame_board_data,index_after_gray,frame_board_send_index);
 	frame_board_send_index+=index_after_gray/4;
 	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
+	if (frame_board_data[frame_board_send_index]=='$')
+	{
+		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
+	}
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]='\r';
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]='\n';
 	frame_board_send_index++;
 
-	if (frame_board_data[frame_board_send_index]=='$')
-	{
-		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
-	}
+	
 	CByteArray Array;
 	Array.RemoveAll();
 	Array.SetSize(frame_board_send_index);
@@ -843,6 +849,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
 		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(FALSE);
 		flag_com_init_ack=0;//子板未连接
 		m_comm.SetPortOpen(FALSE);//关闭串口
 
@@ -909,10 +916,10 @@ void CRadio_stationDlg::OnComm1()
 		m_board_led.SetIcon(m_hIconRed);
 		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡已连接!");
 		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
-		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(TRUE);
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='f')&&(frame_receive[2]=='r')&&(frame_receive[3]=='e')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_scan_times)&&(frame_receive[10]==XOR(frame_receive,10)))//频谱扫描
 	{
@@ -1348,10 +1355,12 @@ void CRadio_stationDlg::OnSelendokComboAlarmType()
 void CRadio_stationDlg::OnButtonAlarm() 
 {
 	// TODO: Add your control notification handler code here
-	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("控制帧发送...");
+	KillTimer(1);
+	OnTimer(1);
+	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("控制帧未发送");
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 	m_frame_send_state.SetIcon(m_hIconOff);
-	KillTimer(1);
+	
 
 	int k=0;
 	int i=0;
@@ -1444,16 +1453,17 @@ void CRadio_stationDlg::OnButtonAlarm()
 	four_bits_ASCII(frame_board_after_gray,frame_board_data,index_after_gray,frame_board_send_index);
 	frame_board_send_index+=index_after_gray/4;
 	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
+	if (frame_board_data[frame_board_send_index]=='$')
+	{
+		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
+	}
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]='\r';
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]='\n';
 	frame_board_send_index++;
 
-	if (frame_board_data[frame_board_send_index]=='$')
-	{
-		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
-	}
+	
 	CByteArray Array;
 	Array.RemoveAll();
 	Array.SetSize(frame_board_send_index);
@@ -1544,7 +1554,7 @@ void CRadio_stationDlg::OnButtonScan()
 
 
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
-		SetTimer(1,125000,NULL);//5秒后使能
+		SetTimer(1,12000,NULL);//12秒后使能
 
 
 }
@@ -1653,4 +1663,108 @@ void CRadio_stationDlg::OnButtonVoice()
 {
 	// TODO: Add your control notification handler code here
 	
+}
+
+void CRadio_stationDlg::OnButtonIdentify() 
+{
+	// TODO: Add your control notification handler code here
+	KillTimer(1);
+	OnTimer(1);
+	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("认证帧未发送");
+	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
+	m_frame_send_state.SetIcon(m_hIconOff);
+
+	srand((unsigned)time(NULL));
+	int rand_bits=1+rand()%1020;
+
+	int k=0;
+	int i=0;
+	unsigned char rand_region[10]={0};//十位随机数
+
+	frame_board_send_index=5;//子板通信数据帧计数器，前五位被占用
+	
+	frame_type[0]=1;//帧类型：认证帧11
+	frame_type[1]=1;
+
+	int_bits(rand_bits,rand_region,10);
+	
+	i=(int)m_radio_id;//电台ID
+	source_address[35]=0;
+	source_address[34]=0;
+	source_address[33]=0;
+	source_address[32]=0;
+	source_address[31]=0;
+	source_address[30]=0;
+	int_bits(i,source_address,30);
+
+	i=(int)m_frame_counter;
+	frame_counter[35]=0;
+	frame_counter[34]=0;
+	frame_counter[33]=0;
+	frame_counter[32]=0;
+	int_bits(i,frame_counter,32);
+/*****************开始组帧********************************/
+	frame_board_bits[0]=frame_type[0];
+	frame_board_bits[1]=frame_type[1];
+	frame_send_index=2;//前面已经有了2个字节，从此开始++
+	for (k=0;k<10;k++)//随机数
+	{
+		frame_board_bits[frame_send_index]=rand_region[k];
+		frame_send_index++;
+	}
+	index_resent_data_frame=5;//重传帧编号,5：认证帧
+	for (k=0;k<36;k++)//电台ID
+	{
+		frame_board_bits[frame_send_index]=source_address[k];
+		frame_send_index++;
+	}
+	for (k=0;k<36;k++)//帧计数器
+	{
+		frame_board_bits[frame_send_index]=frame_counter[k];
+		frame_send_index++;
+	}
+
+/******************串口发送数据*******************************/
+	if (index_data_times<200)
+	{
+		index_data_times++;
+	} 
+	else
+	{
+		index_data_times=0;
+	}
+	frame_board_data[frame_board_send_index]=index_data_times;
+	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]=(frame_send_index/4)/256;//数据部分长度
+	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]=(frame_send_index/4)%256;
+	frame_board_send_index++;
+	four_bits_ASCII(frame_board_bits,frame_board_data,frame_send_index,frame_board_send_index);
+	frame_board_send_index+=frame_send_index/4;
+	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
+	if (frame_board_data[frame_board_send_index]=='$')
+	{
+		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
+	}
+	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]='\r';
+	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]='\n';
+	frame_board_send_index++;
+
+	CByteArray Array;
+	Array.RemoveAll();
+	Array.SetSize(frame_board_send_index);
+	
+	for (i=0;i<frame_board_send_index;i++)
+	{
+		Array.SetAt(i,frame_board_data[i]);
+	}
+	
+	if(m_comm.GetPortOpen())
+	{
+		m_comm.SetOutput(COleVariant(Array));//发送数据
+	}
+
+
 }

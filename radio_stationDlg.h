@@ -87,6 +87,7 @@ protected:
 	afx_msg void OnButtonAlarm();
 	afx_msg void OnKillfocusEditBoardFrequency();
 	afx_msg void OnButtonScan();
+	afx_msg void OnTimer(UINT nIDEvent);
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -129,6 +130,8 @@ private:
 	unsigned char index_control_times;//控制帧发送次数计数器，上下位机通信，保证每帧数据都不同
 	unsigned char index_data_times;//数据帧发送次数计数器，上下位机通信，保证每帧数据都不同
 	bool flag_board_modified;//修改下位机配置标志位
+	bool flag_scan_button;//扫描按钮上文字切换
+	int index_resent_data_frame;//重传帧编号
 
 };
 

@@ -5,7 +5,8 @@
 #include "radio_station.h"
 #include "radio_stationDlg.h"
 #include "encrypt.h"
-#include <math.h> 
+#include <math.h>
+#include <windows.h> 
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -155,6 +156,7 @@ BEGIN_MESSAGE_MAP(CRadio_stationDlg, CDialog)
 	ON_BN_CLICKED(IDC_BUTTON_ALARM, OnButtonAlarm)
 	ON_EN_KILLFOCUS(IDC_EDIT_BOARD_FREQUENCY, OnKillfocusEditBoardFrequency)
 	ON_BN_CLICKED(IDC_BUTTON_SCAN, OnButtonScan)
+	ON_WM_TIMER()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -211,6 +213,8 @@ BOOL CRadio_stationDlg::OnInitDialog()
 //	index_before_gray=0;
 	index_after_gray=0;
 	index_frequency_point=0;//频点计数器归零
+	flag_scan_button=0;
+	index_resent_data_frame=0;
 
 	m_hIconRed  = AfxGetApp()->LoadIcon(IDI_ICON_RED);
 	m_hIconOff	= AfxGetApp()->LoadIcon(IDI_ICON_OFF);
@@ -451,11 +455,13 @@ void CRadio_stationDlg::OnButtonWakeup()
 	{		
 		wakeup_type[0]=1;//单播01、广播10、组播11
 		wakeup_type[1]=0;
+		index_resent_data_frame=1;//重传帧编号
 	} 
 	else if(m_radio_wakeup==1)//单播唤醒帧
 	{
 		wakeup_type[0]=0;//单播01、广播10、组播11
 		wakeup_type[1]=1;
+		index_resent_data_frame=2;//重传帧编号
 
 		i=(int)(m_unicast_terminal_id-m_radio_id*pow(2,18));//终端ID
 		int_bits(i,target_address_unicast,24);
@@ -469,6 +475,7 @@ void CRadio_stationDlg::OnButtonWakeup()
 	{		
 		wakeup_type[0]=1;//单播01、广播10、组播11
 		wakeup_type[1]=1;
+		index_resent_data_frame=3;//重传帧编号
 
 		i=(int)(m_multi_terminal_id_start-m_radio_id*pow(2,18));//终端起始ID
 		int_bits(i,target_address_multicast_start,24);
@@ -840,6 +847,7 @@ void CRadio_stationDlg::OnComm1()
 			
 		}
 //		AfxMessageBox(strDisp,MB_OK,0);
+
 	if ((flag_com_init_ack==0)&&(frame_receive[1]=='r')&&(frame_receive[2]=='d')&&(frame_receive[3]=='y')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_wakeup_times)&&(frame_receive[7]==XOR(frame_receive,7)))//首次连接握手
 	{
@@ -870,12 +878,29 @@ void CRadio_stationDlg::OnComm1()
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='d')&&(frame_receive[2]=='a')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_data_times)&&(frame_receive[7]==XOR(frame_receive,7)))//数据帧反馈信息
 	{
-		m_board_led.SetIcon(m_hIconRed);
-		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡已连接!");
-		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
-		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
-		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(TRUE);
-		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
+
+
+	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='r')&&(frame_receive[2]=='s')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==0)&&(frame_receive[7]==0)&&(frame_receive[8]==XOR(frame_receive,8)))//重传帧
+	{
+	//	AfxMessageBox("wakaka",MB_OK,0);
+		switch (index_resent_data_frame)
+		{
+		case 1://广播唤醒帧
+			OnButtonWakeup(); 
+			break;
+		case 2://单播唤醒帧
+			OnButtonWakeup(); 
+			break;
+		case 3://组播唤醒帧
+			OnButtonWakeup(); 
+			break;
+		case 4://控制指令帧
+			OnButtonAlarm();
+			break;
+		case 5://认证帧
+			break;
+		}
 	} 
 	else
 	{
@@ -1272,7 +1297,7 @@ void CRadio_stationDlg::OnButtonAlarm()
 		frame_board_bits[frame_send_index]=control_region[k];
 		frame_send_index++;
 	}
-
+	index_resent_data_frame=4;//重传帧编号
 	for (k=0;k<36;k++)//帧计数器
 	{
 		frame_board_bits[frame_send_index]=frame_counter[k];
@@ -1402,7 +1427,6 @@ void CRadio_stationDlg::OnButtonScan()
 // 
 // 	}
 
-
 	index_frequency_point=0;//频点计数器归零
 	if (index_scan_times<200)
 	{
@@ -1429,4 +1453,37 @@ void CRadio_stationDlg::OnButtonScan()
 	{
 		m_comm.SetOutput(COleVariant(Array));//发送数据
 	}
+
+
+
+	if(flag_scan_button==0){
+		flag_scan_button=1;
+		GetDlgItem(IDC_BUTTON_SCAN)->SetWindowText("取消扫描");
+		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
+		SetTimer(1,1500,NULL);//1.5秒后使能
+
+	}else{
+		flag_scan_button=0;
+		GetDlgItem(IDC_BUTTON_SCAN)->SetWindowText("频谱扫描");
+		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
+		SetTimer(1,1500,NULL);//1.5秒后使能
+	}
+}
+
+void CRadio_stationDlg::OnTimer(UINT nIDEvent) 
+{
+	// TODO: Add your message handler code here and/or call default
+	if (nIDEvent==1)
+	{
+		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
+		KillTimer(1);
+	} 
+// 	else if(nIDEvent==2)
+// 	{
+// 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
+// 		KillTimer(2);	
+// 		UpdateData(FALSE);
+// 	}
+
+	CDialog::OnTimer(nIDEvent);
 }

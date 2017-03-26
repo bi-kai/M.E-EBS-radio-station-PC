@@ -234,11 +234,11 @@ BOOL CRadio_stationDlg::OnInitDialog()
 // 	GetDlgItem(IDC_COMBO_PARITY)->SetWindowText(_T("NONE"));
 // 	GetDlgItem(IDC_COMBO_DATABITS)->SetWindowText(_T("8"));
 // 	GetDlgItem(IDC_COMBO_STOPBITS)->SetWindowText(_T("1"));
-	m_Com.SetCurSel(0);
-	m_DataBits.SetCurSel(0);
-	m_Speed.SetCurSel(5);
-	m_StopBits.SetCurSel(0);
-	m_Parity.SetCurSel(0);
+// 	m_Com.SetCurSel(0);
+// 	m_DataBits.SetCurSel(0);
+// 	m_Speed.SetCurSel(5);
+// 	m_StopBits.SetCurSel(0);
+// 	m_Parity.SetCurSel(0);
 
 	GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_ID)->EnableWindow(FALSE);
@@ -282,11 +282,18 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		::WritePrivateProfileString("ConfigInfo","frequency","79.0",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","frequency_native","79.0",".\\config_radiostation.ini");//下位机RDA5820工作频点
 		/**********串口配置**********************/
-		::WritePrivateProfileString("ConfigInfo","com","1",".\\config_radiostation.ini");
-		::WritePrivateProfileString("ConfigInfo","parity","N",".\\config_radiostation.ini");
-		::WritePrivateProfileString("ConfigInfo","databits","8",".\\config_radiostation.ini");
-		::WritePrivateProfileString("ConfigInfo","speed","115200",".\\config_radiostation.ini");
-		::WritePrivateProfileString("ConfigInfo","stopbits","1",".\\config_radiostation.ini");
+		::WritePrivateProfileString("ConfigInfo","com","0",".\\config_radiostation.ini");//串口配置选项组
+		::WritePrivateProfileString("ConfigInfo","parity","0",".\\config_radiostation.ini");
+		::WritePrivateProfileString("ConfigInfo","databits","0",".\\config_radiostation.ini");
+		::WritePrivateProfileString("ConfigInfo","speed","5",".\\config_radiostation.ini");
+		::WritePrivateProfileString("ConfigInfo","stopbits","0",".\\config_radiostation.ini");
+
+		::WritePrivateProfileString("ConfigInfo","com_r","1",".\\config_radiostation.ini");//串口配置数值组
+		::WritePrivateProfileString("ConfigInfo","parity_r","N",".\\config_radiostation.ini");
+		::WritePrivateProfileString("ConfigInfo","databits_r","8",".\\config_radiostation.ini");
+		::WritePrivateProfileString("ConfigInfo","speed_r","115200",".\\config_radiostation.ini");
+		::WritePrivateProfileString("ConfigInfo","stopbits_r","1",".\\config_radiostation.ini");
+
 	}
 		CString strBufferReadConfig,strtmpReadConfig;
 		
@@ -316,32 +323,58 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		m_frequency_native= (double)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
 
 		/**********串口配置**********************/
-		GetPrivateProfileString("ConfigInfo","com","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","com_r","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		m_DCom= (int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
 		
-		GetPrivateProfileString("ConfigInfo","parity","N",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","parity_r","N",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		m_DParity= (char)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
 		
-		GetPrivateProfileString("ConfigInfo","databits","8",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","databits_r","8",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		m_DDatabits= (int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
 		
-		GetPrivateProfileString("ConfigInfo","speed","115200",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","speed_r","115200",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		m_DBaud= (long)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
 		
-		GetPrivateProfileString("ConfigInfo","stopbits","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","stopbits_r","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		m_DStopbits= (int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
+		///////////////////////////////////////////////////////////////////////////
+		GetPrivateProfileString("ConfigInfo","com","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		strBufferReadConfig.ReleaseBuffer();
+		strtmpReadConfig+=","+strBufferReadConfig;
+		((CComboBox*)GetDlgItem(IDC_COMBO_COMSELECT))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
+			
 
-	UpdateData(FALSE);
+		GetPrivateProfileString("ConfigInfo","parity","N",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		strBufferReadConfig.ReleaseBuffer();
+		strtmpReadConfig+=","+strBufferReadConfig;
+		((CComboBox*)GetDlgItem(IDC_COMBO_PARITY))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
+		
+		GetPrivateProfileString("ConfigInfo","databits","8",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		strBufferReadConfig.ReleaseBuffer();
+		strtmpReadConfig+=","+strBufferReadConfig;
+		((CComboBox*)GetDlgItem(IDC_COMBO_DATABITS))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
+		
+		GetPrivateProfileString("ConfigInfo","speed","115200",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		strBufferReadConfig.ReleaseBuffer();
+		strtmpReadConfig+=","+strBufferReadConfig;
+		((CComboBox*)GetDlgItem(IDC_COMBO_SPEED))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
+		
+		GetPrivateProfileString("ConfigInfo","stopbits","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		strBufferReadConfig.ReleaseBuffer();
+		strtmpReadConfig+=","+strBufferReadConfig;
+		((CComboBox*)GetDlgItem(IDC_COMBO_STOPBITS))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
+
+		UpdateData(FALSE);
 //	((CButton *)GetDlgItem(IDC_RADIO_BROADCAST))->SetCheck(TRUE);//选上
 /****************************状态栏**************************************/
 // 	m_StatBar=new CStatusBarCtrl;
@@ -663,12 +696,12 @@ void CRadio_stationDlg::OnButtonWakeup()
 	}
 	frame_board_data[frame_board_send_index]=index_data_times;
 	frame_board_send_index++;
-// 	frame_board_data[frame_board_send_index]=(unsigned char)m_wakeup_time+0x30;//唤醒秒数
-// 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]=(index_after_gray/4)/256;
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]=(index_after_gray/4)%256;//最后一位是异或校验和
 	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]=(unsigned char)m_wakeup_time+0x30;//唤醒秒数
+ 	frame_board_send_index++;
 	four_bits_ASCII(frame_board_after_gray,frame_board_data,index_after_gray,frame_board_send_index);
 	frame_board_send_index+=index_after_gray/4;
 	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
@@ -718,14 +751,22 @@ void CRadio_stationDlg::OnSelendokComboComselect()
 	UpdateData();
 	
 	CString strTemp;
-	strTemp.Format(_T("%d"),m_DCom);
+	strTemp.Format(_T("%d"),m_DCom-1);
 	::WritePrivateProfileString("ConfigInfo","com",strTemp,".\\config_radiostation.ini");
+	
+	strTemp.Format(_T("%d"),m_DCom);
+	::WritePrivateProfileString("ConfigInfo","com_r",strTemp,".\\config_radiostation.ini");
 }
 
 void CRadio_stationDlg::OnSelendokComboDatabits() 
 {
 	// TODO: Add your control notification handler code here
 	int i=m_DataBits.GetCurSel();
+
+	CString strTemp;
+	strTemp.Format(_T("%d"),i);
+	::WritePrivateProfileString("ConfigInfo","databits",strTemp,".\\config_radiostation.ini");
+
 	switch(i)
 	{
 	case 0:
@@ -743,9 +784,9 @@ void CRadio_stationDlg::OnSelendokComboDatabits()
 	m_DDatabits=app->m_nDatabits;
 	UpdateData();
 
-	CString strTemp;
 	strTemp.Format(_T("%d"),m_DDatabits);
-	::WritePrivateProfileString("ConfigInfo","databits",strTemp,".\\config_radiostation.ini");
+	::WritePrivateProfileString("ConfigInfo","databits_r",strTemp,".\\config_radiostation.ini");
+
 }
 
 void CRadio_stationDlg::OnSelendokComboParity() 
@@ -753,6 +794,11 @@ void CRadio_stationDlg::OnSelendokComboParity()
 	// TODO: Add your control notification handler code here
 	char temp;
 	int i=m_Parity.GetCurSel();
+
+	CString strTemp;
+	strTemp.Format(_T("%d"),i);
+	::WritePrivateProfileString("ConfigInfo","parity",strTemp,".\\config_radiostation.ini");
+
 	switch(i)
 	{
 	case 0:
@@ -770,71 +816,102 @@ void CRadio_stationDlg::OnSelendokComboParity()
 	m_DParity=app->m_cParity;
 	UpdateData();
 
-	CString strTemp;
 	strTemp.Format(_T("%c"),m_DParity);
-	::WritePrivateProfileString("ConfigInfo","parity",strTemp,".\\config_radiostation.ini");
+	::WritePrivateProfileString("ConfigInfo","parity_r",strTemp,".\\config_radiostation.ini");
+
 }
 
 void CRadio_stationDlg::OnSelendokComboSpeed() 
 {
 	// TODO: Add your control notification handler code here
 	int i=m_Speed.GetCurSel();
+
+	CString strTemp;
+	strTemp.Format(_T("%d"),i);
+	::WritePrivateProfileString("ConfigInfo","speed",strTemp,".\\config_radiostation.ini");
+
 	switch(i)
 	{
+// 	case 0:
+// 		i=300;
+// 		break;
+// 	case 1:
+// 		i=600;
+// 		break;
+// 	case 2:
+// 		i=1200;
+// 		break;
+// 	case 3:
+// 		i=2400;
+// 		break;
+// 	case 4:
+// 		i=4800;
+// 		break;
+// 	case 5:
+// 		i=9600;
+// 		break;
+// 	case 6:
+// 		i=19200;
+// 		break;
+// 	case 7:
+// 		i=38400;
+// 		break;
+// 	case 8:
+// 		i=43000;
+// 		break;
+// 	case 9:
+// 		i=56000;
+// 		break;
+// 	case 10:
+// 		i=57600;
+// 		break;
+// 	case 11:
+// 		i=115200;
+// 		break;
+// 	default:
+// 		break;
+	
+		
 	case 0:
-		i=300;
-		break;
-	case 1:
-		i=600;
-		break;
-	case 2:
-		i=1200;
-		break;
-	case 3:
-		i=2400;
-		break;
-	case 4:
-		i=4800;
-		break;
-	case 5:
 		i=9600;
 		break;
-	case 6:
+	case 1:
 		i=19200;
 		break;
-	case 7:
-		i=38400;
-		break;
-	case 8:
+	case 2:
 		i=43000;
 		break;
-	case 9:
+	case 3:
 		i=56000;
 		break;
-	case 10:
+	case 4:
 		i=57600;
 		break;
-	case 11:
+	case 5:
 		i=115200;
 		break;
 	default:
 		break;
-		
 	}
 	CRadio_stationApp *app = (CRadio_stationApp *)AfxGetApp(); //生成指向应用程序类的指针
 	app->m_nBaud=i;
 	m_DBaud=app->m_nBaud;
 	UpdateData();
 	
-	CString strTemp;
 	strTemp.Format(_T("%d"),m_DBaud);
-	::WritePrivateProfileString("ConfigInfo","speed",strTemp,".\\config_radiostation.ini");
+	::WritePrivateProfileString("ConfigInfo","speed_r",strTemp,".\\config_radiostation.ini");
+
 }
 
 void CRadio_stationDlg::OnSelendokComboStopbits() 
 {
 	// TODO: Add your control notification handler code here
 	int i=m_StopBits.GetCurSel();
+
+	CString strTemp;
+	strTemp.Format(_T("%d"),i);
+	::WritePrivateProfileString("ConfigInfo","stopbits",strTemp,".\\config_radiostation.ini");
+
 	switch(i)
 	{
 	case 0:
@@ -849,9 +926,9 @@ void CRadio_stationDlg::OnSelendokComboStopbits()
 	m_DStopbits=app->m_nStopbits;
 	UpdateData();
 
-	CString strTemp;
 	strTemp.Format(_T("%d"),m_DStopbits);
-	::WritePrivateProfileString("ConfigInfo","stopbits",strTemp,".\\config_radiostation.ini");
+	::WritePrivateProfileString("ConfigInfo","stopbits_r",strTemp,".\\config_radiostation.ini");
+
 }
 
 void CRadio_stationDlg::OnButtonConnectboard() 
@@ -923,7 +1000,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 			{
 				m_comm.SetOutput(COleVariant(Array));//发送数据
 			}
-			SetTimer(2,10000,NULL);//只有在子板连接上后才打开定期查询，10秒查询一次子板是否保持连接
+			SetTimer(2,10000,NULL);//只有在子板连接上后并且没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接
 		}
 		else
 			MessageBox("无法打开串口，请重试！");	 
@@ -1578,12 +1655,16 @@ void CRadio_stationDlg::OnButtonAlarm()
 	if(m_comm.GetPortOpen())
 	{
 		m_comm.SetOutput(COleVariant(Array));//发送数据
+	}
+	
+	if(m_comm.GetPortOpen())
+	{
 		m_frame_counter++;//帧计数器自增
 		CString strTemp;
 		strTemp.Format(_T("%d"),m_frame_counter);
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
-	}	
+	}
 }
 
 void CRadio_stationDlg::OnKillfocusEditBoardFrequency() 
@@ -1608,6 +1689,7 @@ void CRadio_stationDlg::OnKillfocusEditBoardFrequency()
 void CRadio_stationDlg::OnButtonScan() 
 {
 	// TODO: Add your control notification handler code here
+	KillTimer(2);
 	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("开始扫描频谱");
 	int nRows=0,nIndex=0,i=0;
 	m_rssi_list.DeleteAllItems();
@@ -1666,7 +1748,7 @@ void CRadio_stationDlg::OnButtonScan()
 
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->EnableWindow(FALSE);
-		SetTimer(1,11000,NULL);//12秒后使能
+		SetTimer(1,11000,NULL);//11秒后使能
 
 
 }
@@ -1681,6 +1763,7 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("频谱扫描完成");
 		m_frame_send_state.SetIcon(m_hIconRed);
 		KillTimer(1);
+		SetTimer(2,10000,NULL);//只有在子板连接上后并且没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接
 	} 
 	else if(nIDEvent==2)
 	{
@@ -1714,17 +1797,15 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 			m_comm.SetOutput(COleVariant(Array));//发送数据
 		}
 
-		
-
 		SetTimer(3,1000,NULL);//定时器2发出轮检查询帧后，打开定时器3，3次超时timer_board_disconnect_times未被清零，则标记故障
-
+		timer_board_disconnect_times++;
 	}//end of if(nIDEvent==2)
 	else if(nIDEvent==3){
 		if (timer_board_disconnect_times!=0)
 		{
 			timer_board_disconnect_times++;
 		}
-		if (timer_board_disconnect_times>=3)
+		if (timer_board_disconnect_times>=6)
 		{
 			timer_board_disconnect_times=0;
 			m_board_led.SetIcon(m_hIconOff);
@@ -1783,7 +1864,7 @@ LRESULT CRadio_stationDlg::OnShowTask(WPARAM wParam, LPARAM lParam)
 		break; 
 	case WM_LBUTTONDBLCLK://双击左键的处理 
         { 
-			SetTimer(2,1000,NULL);
+//			SetTimer(2,1000,NULL);
             this->ShowWindow(SW_SHOW);//简单的显示主窗口完事儿
 			//			this->SetForegroundWindow();         //置顶显示
 			

@@ -279,8 +279,8 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		::WritePrivateProfileString("ConfigInfo","ID","34095233",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","frame_counter","0",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","wakeup_time","1",".\\config_radiostation.ini");
-		::WritePrivateProfileString("ConfigInfo","frequency","79.0",".\\config_radiostation.ini");
-		::WritePrivateProfileString("ConfigInfo","frequency_native","79.0",".\\config_radiostation.ini");//下位机RDA5820工作频点
+		::WritePrivateProfileString("ConfigInfo","frequency","76.0",".\\config_radiostation.ini");
+		::WritePrivateProfileString("ConfigInfo","frequency_native","76.0",".\\config_radiostation.ini");//下位机RDA5820工作频点
 		/**********串口配置**********************/
 		::WritePrivateProfileString("ConfigInfo","com","0",".\\config_radiostation.ini");//串口配置选项组
 		::WritePrivateProfileString("ConfigInfo","parity","0",".\\config_radiostation.ini");
@@ -705,9 +705,9 @@ void CRadio_stationDlg::OnButtonWakeup()
 	four_bits_ASCII(frame_board_after_gray,frame_board_data,index_after_gray,frame_board_send_index);
 	frame_board_send_index+=index_after_gray/4;
 	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
-	if (frame_board_data[frame_board_send_index]=='$')
+	if ((frame_board_data[frame_board_send_index]=='$')||(frame_board_data[frame_board_send_index]==0x0d))
 	{
-		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
+		frame_board_data[frame_board_send_index]++;//如果异或结果是$或0x0d，则值加一
 	}
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]='\r';
@@ -985,6 +985,10 @@ void CRadio_stationDlg::OnButtonConnectboard()
 			}
 			frame_board_check[5]=index_wakeup_times;
 			frame_board_check[6]=XOR(frame_board_check,6);
+			if ((frame_board_check[6]=='$')||(frame_board_check[6]==0x0d))
+			{
+				frame_board_check[6]++;//如果异或结果是$或0x0d，则值加一
+			}
 			frame_board_check[7]='\r';
 			frame_board_check[8]='\n';
 			CByteArray Array;
@@ -1078,8 +1082,8 @@ void CRadio_stationDlg::OnComm1()
 		}
 //		AfxMessageBox(strDisp,MB_OK,0);
 
-	if ((flag_com_init_ack==0)&&(frame_receive[1]=='r')&&(frame_receive[2]=='d')&&(frame_receive[3]=='y')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_wakeup_times)&&(frame_receive[7]==XOR(frame_receive,7)))//首次连接握手
+	if (((flag_com_init_ack==0)||(timer_board_disconnect_times!=0))&&(frame_receive[1]=='r')&&(frame_receive[2]=='d')&&(frame_receive[3]=='y')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_wakeup_times)&&(frame_receive[8]==XOR(frame_receive,8)))//首次连接握手，上位机软件接收时，不用避免$,\r,\n
 	{
 		flag_com_init_ack=1;
 		m_board_led.SetIcon(m_hIconRed);
@@ -1090,6 +1094,12 @@ void CRadio_stationDlg::OnComm1()
 		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(TRUE);
 		timer_board_disconnect_times=0;//收到反馈则清零
+
+		m_frequency_native=FREQUENCY_TERMINAL_START+frame_receive[7]/10;
+		CString strTemp;
+		strTemp.Format(_T("%.1f"),m_frequency_native);
+		::WritePrivateProfileString("ConfigInfo","frequency_native",strTemp,".\\config_radiostation.ini");
+		UpdateData(FALSE);
 		
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='f')&&(frame_receive[2]=='r')&&(frame_receive[3]=='e')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_scan_times)&&(frame_receive[10]==XOR(frame_receive,10)))//频谱扫描
@@ -1427,6 +1437,10 @@ void CRadio_stationDlg::OnButtonBoardConfig()
 	frame_board_control[6]=2;
 	frame_board_control[7]=(unsigned char)((m_frequency_native-FREQUENCY_TERMINAL_START)*10);
 	frame_board_control[8]=XOR(frame_board_control,8);
+	if ((frame_board_control[8]=='$')||(frame_board_control[8]==0x0d))
+	{
+		frame_board_control[8]++;//如果异或结果是$或0x0d，则值加一
+	}
 	frame_board_control[9]='\r';
 	frame_board_control[10]='\n';
 	CByteArray Array;
@@ -1632,9 +1646,9 @@ void CRadio_stationDlg::OnButtonAlarm()
 	four_bits_ASCII(frame_board_after_gray,frame_board_data,index_after_gray,frame_board_send_index);
 	frame_board_send_index+=index_after_gray/4;
 	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
-	if (frame_board_data[frame_board_send_index]=='$')
+	if ((frame_board_data[frame_board_send_index]=='$')||(frame_board_data[frame_board_send_index]==0x0d))
 	{
-		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
+		frame_board_data[frame_board_send_index]++;//如果异或结果是$或0x0d，则值加一
 	}
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]='\r';
@@ -1728,6 +1742,10 @@ void CRadio_stationDlg::OnButtonScan()
 	}
 	frame_board_frequency[5]=index_scan_times;
 	frame_board_frequency[6]=XOR(frame_board_frequency,6);
+	if ((frame_board_frequency[6]=='$')||(frame_board_frequency[6]==0x0d))
+	{
+		frame_board_frequency[6]++;//如果异或结果是$或0x0d，则值加一
+	}
 	frame_board_frequency[7]='\r';
 	frame_board_frequency[8]='\n';
 	CByteArray Array;
@@ -1781,6 +1799,10 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 		}
 		frame_board_check[5]=index_wakeup_times;
 		frame_board_check[6]=XOR(frame_board_check,6);
+		if ((frame_board_check[6]=='$')||(frame_board_check[6]==0x0d))
+		{
+			frame_board_check[6]++;//如果异或结果是$或0x0d，则值加一
+	}
 		frame_board_check[7]='\r';
 		frame_board_check[8]='\n';
 		CByteArray Array;
@@ -1797,15 +1819,16 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 			m_comm.SetOutput(COleVariant(Array));//发送数据
 		}
 
+		if(timer_board_disconnect_times==0)timer_board_disconnect_times++;
 		SetTimer(3,1000,NULL);//定时器2发出轮检查询帧后，打开定时器3，3次超时timer_board_disconnect_times未被清零，则标记故障
-		timer_board_disconnect_times++;
+		
 	}//end of if(nIDEvent==2)
 	else if(nIDEvent==3){
 		if (timer_board_disconnect_times!=0)
 		{
 			timer_board_disconnect_times++;
 		}
-		if (timer_board_disconnect_times>=6)
+		if (timer_board_disconnect_times>=4)
 		{
 			timer_board_disconnect_times=0;
 			m_board_led.SetIcon(m_hIconOff);
@@ -1990,9 +2013,9 @@ void CRadio_stationDlg::OnButtonIdentify()
 	four_bits_ASCII(frame_board_bits,frame_board_data,frame_send_index,frame_board_send_index);
 	frame_board_send_index+=frame_send_index/4;
 	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
-	if (frame_board_data[frame_board_send_index]=='$')
+	if ((frame_board_data[frame_board_send_index]=='$')||(frame_board_data[frame_board_send_index]==0x0d))
 	{
-		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
+		frame_board_data[frame_board_send_index]++;//如果异或结果是$或0x0d，则值加一
 	}
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]='\r';

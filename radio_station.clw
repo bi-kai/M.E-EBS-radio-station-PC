@@ -38,7 +38,7 @@ HeaderFile=radio_stationDlg.h
 ImplementationFile=radio_stationDlg.cpp
 Filter=D
 VirtualFilter=dWC
-LastObject=IDC_EDIT_FRAME_COUNTER
+LastObject=IDC_EDIT_BOARD_FREQUENCY
 
 [DLG:IDD_ABOUTBOX]
 Type=1

@@ -93,6 +93,7 @@ protected:
 	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnClose();
 	afx_msg void OnDestroy();
+	afx_msg void OnButtonVoice();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

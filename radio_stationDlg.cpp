@@ -162,6 +162,7 @@ BEGIN_MESSAGE_MAP(CRadio_stationDlg, CDialog)
 	ON_WM_TIMER()
 	ON_WM_CLOSE()
 	ON_WM_DESTROY()
+	ON_BN_CLICKED(IDC_BUTTON_VOICE, OnButtonVoice)
 	//}}AFX_MSG_MAP
 	ON_MESSAGE(WM_SHOWTASK,OnShowTask)
 END_MESSAGE_MAP()
@@ -335,33 +336,33 @@ BOOL CRadio_stationDlg::OnInitDialog()
     strcpy(nid.szTip,"应急广播系统平台");    //信息提示条 
     Shell_NotifyIcon(NIM_ADD,&nid);    //在托盘区添加图标 
 /***************************开机自启动****************************/
-	HKEY RegKey;  
-	CString sPath;  
-	GetModuleFileName(NULL,sPath.GetBufferSetLength(MAX_PATH+1),MAX_PATH);  
-	sPath.ReleaseBuffer();  
-	int nPos;  
-	nPos=sPath.ReverseFind('\\');  
-	sPath=sPath.Left(nPos);  
-	CString lpszFile=sPath+"\\radio_station.exe";//这里加上你要查找的执行文件名称  
-	CFileFind fFind;  
-	BOOL bSuccess;  
-	bSuccess=fFind.FindFile(lpszFile);  
-	fFind.Close();  
-	if(bSuccess)  
-	{  
-	   CString fullName;  
-	   fullName=lpszFile;  
-	   RegKey=NULL;  
-	   RegOpenKey(HKEY_LOCAL_MACHINE,"Software\\Microsoft\\Windows\\CurrentVersion\\Run",&RegKey);  
-	   RegSetValueEx(RegKey,"radio_station",0,REG_SZ,(const unsigned char*)(LPCTSTR)fullName,fullName.GetLength());//这里加上你需要在注册表中注册的内容  
-	   this->UpdateData(FALSE);  
-	}  
-	else  
-	{  
-		//theApp.SetMainSkin();  
-		//::AfxMessageBox("没找到执行程序，自动运行失败");  
-		//exit(0);  
-	}  
+// 	HKEY RegKey;  
+// 	CString sPath;  
+// 	GetModuleFileName(NULL,sPath.GetBufferSetLength(MAX_PATH+1),MAX_PATH);  
+// 	sPath.ReleaseBuffer();  
+// 	int nPos;  
+// 	nPos=sPath.ReverseFind('\\');  
+// 	sPath=sPath.Left(nPos);  
+// 	CString lpszFile=sPath+"\\radio_station.exe";//这里加上你要查找的执行文件名称  
+// 	CFileFind fFind;  
+// 	BOOL bSuccess;  
+// 	bSuccess=fFind.FindFile(lpszFile);  
+// 	fFind.Close();  
+// 	if(bSuccess)  
+// 	{  
+// 	   CString fullName;  
+// 	   fullName=lpszFile;  
+// 	   RegKey=NULL;  
+// 	   RegOpenKey(HKEY_LOCAL_MACHINE,"Software\\Microsoft\\Windows\\CurrentVersion\\Run",&RegKey);  
+// 	   RegSetValueEx(RegKey,"radio_station",0,REG_SZ,(const unsigned char*)(LPCTSTR)fullName,fullName.GetLength());//这里加上你需要在注册表中注册的内容  
+// 	   this->UpdateData(FALSE);  
+// 	}  
+// 	else  
+// 	{  
+// 		//theApp.SetMainSkin();  
+// 		//::AfxMessageBox("没找到执行程序，自动运行失败");  
+// 		//exit(0);  
+// 	}  
 
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
@@ -1646,4 +1647,10 @@ void CRadio_stationDlg::OnDestroy()//选择退出时，托盘区删除图标
 	nid.hIcon=LoadIcon(AfxGetInstanceHandle(),MAKEINTRESOURCE(IDR_MAINFRAME)); 
 	strcpy(nid.szTip,"程序名称");    //信息提示条为“计划任务提醒” 
 	Shell_NotifyIcon(NIM_DELETE,&nid);    //在托盘区删除图标 
+}
+
+void CRadio_stationDlg::OnButtonVoice() 
+{
+	// TODO: Add your control notification handler code here
+	
 }

@@ -21,9 +21,12 @@ public:
 	CRadio_stationDlg(CWnd* pParent = NULL);	// standard constructor
 	HICON m_hIconRed;    //串口打开时的红灯图标句柄
 	HICON m_hIconOff;    //串口关闭时的指示图标句柄
+	afx_msg LRESULT OnShowTask(WPARAM wParam,LPARAM lParam);
+
 // Dialog Data
 	//{{AFX_DATA(CRadio_stationDlg)
 	enum { IDD = IDD_RADIO_STATION_DIALOG };
+	CStatic	m_frame_send_state;
 	CListCtrl	m_rssi_list;
 	CComboBox	m_alarm_command;
 	CStatic	m_board_connect;
@@ -88,11 +91,15 @@ protected:
 	afx_msg void OnKillfocusEditBoardFrequency();
 	afx_msg void OnButtonScan();
 	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnClose();
+	afx_msg void OnDestroy();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
 public:
+//	LRESULT OnShowTask( WPARAM wParam,LPARAM lParam );
+	void ToTray();
 	void four_bits_ASCII(unsigned char* a,unsigned char* b,int len,int index);
 	void int_bits(int a, unsigned char* b, int len);
 	unsigned char XOR(unsigned char *BUFF, int len);
@@ -130,7 +137,7 @@ private:
 	unsigned char index_control_times;//控制帧发送次数计数器，上下位机通信，保证每帧数据都不同
 	unsigned char index_data_times;//数据帧发送次数计数器，上下位机通信，保证每帧数据都不同
 	bool flag_board_modified;//修改下位机配置标志位
-	bool flag_scan_button;//扫描按钮上文字切换
+//	bool flag_scan_button;//扫描按钮上文字切换
 	int index_resent_data_frame;//重传帧编号
 
 };

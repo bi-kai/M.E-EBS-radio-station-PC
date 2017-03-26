@@ -14,6 +14,8 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+#define WM_SHOWTASK (WM_USER +1)
+
 #define RADIO_ID_START 34095233
 #define RADIO_ID_END 1073741823
 #define AREA_TERMINAL_ID_START 4353
@@ -104,6 +106,7 @@ void CRadio_stationDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CRadio_stationDlg)
+	DDX_Control(pDX, IDC_STATIC_FRAMESEND_LED, m_frame_send_state);
 	DDX_Control(pDX, IDC_LIST1, m_rssi_list);
 	DDX_Control(pDX, IDC_COMBO_ALARM_TYPE, m_alarm_command);
 	DDX_Control(pDX, IDC_STATIC_BOARDCONNECT, m_board_connect);
@@ -157,7 +160,10 @@ BEGIN_MESSAGE_MAP(CRadio_stationDlg, CDialog)
 	ON_EN_KILLFOCUS(IDC_EDIT_BOARD_FREQUENCY, OnKillfocusEditBoardFrequency)
 	ON_BN_CLICKED(IDC_BUTTON_SCAN, OnButtonScan)
 	ON_WM_TIMER()
+	ON_WM_CLOSE()
+	ON_WM_DESTROY()
 	//}}AFX_MSG_MAP
+	ON_MESSAGE(WM_SHOWTASK,OnShowTask)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -213,7 +219,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 //	index_before_gray=0;
 	index_after_gray=0;
 	index_frequency_point=0;//频点计数器归零
-	flag_scan_button=0;
+//	flag_scan_button=0;
 	index_resent_data_frame=0;
 
 	m_hIconRed  = AfxGetApp()->LoadIcon(IDI_ICON_RED);
@@ -305,17 +311,58 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	
 	m_rssi_list.InsertColumn(0,"频点(MHz)", LVCFMT_LEFT, 40);
 	m_rssi_list.InsertColumn(1,"RSSI", LVCFMT_LEFT, 40);
+	m_rssi_list.InsertColumn(2,"电台", LVCFMT_LEFT, 40);
 	
 	CRect rect;
 	m_rssi_list.GetClientRect(rect); //获得当前客户区信息
-	m_rssi_list.SetColumnWidth(0, rect.Width()*6/11); //设置列的宽度。
-	m_rssi_list.SetColumnWidth(1, rect.Width()*3/11);
+	m_rssi_list.SetColumnWidth(0, rect.Width()*9/22); //设置列的宽度。
+	m_rssi_list.SetColumnWidth(1, rect.Width()*5/22);
+	m_rssi_list.SetColumnWidth(2, rect.Width()*5/22);
 	
 	LVFINDINFO info;
 	int nIndex;
 	info.flags = LVFI_PARTIAL|LVFI_STRING;
 	info.psz = "79.4";
 	nIndex = m_rssi_list.FindItem(&info);  // nIndex为行数(从0开始)
+/*************************托盘程序********************************/
+	NOTIFYICONDATA nid; 
+    nid.cbSize=(DWORD)sizeof(NOTIFYICONDATA); 
+    nid.hWnd=this->m_hWnd; 
+    nid.uID=IDR_MAINFRAME; 
+    nid.uFlags=NIF_ICON|NIF_MESSAGE|NIF_TIP; 
+    nid.uCallbackMessage=WM_SHOWTASK;//自定义的消息名称 
+    nid.hIcon=LoadIcon(AfxGetInstanceHandle(),MAKEINTRESOURCE(IDI_ICON_RED)); 
+    strcpy(nid.szTip,"应急广播系统平台");    //信息提示条 
+    Shell_NotifyIcon(NIM_ADD,&nid);    //在托盘区添加图标 
+/***************************开机自启动****************************/
+	HKEY RegKey;  
+	CString sPath;  
+	GetModuleFileName(NULL,sPath.GetBufferSetLength(MAX_PATH+1),MAX_PATH);  
+	sPath.ReleaseBuffer();  
+	int nPos;  
+	nPos=sPath.ReverseFind('\\');  
+	sPath=sPath.Left(nPos);  
+	CString lpszFile=sPath+"\\radio_station.exe";//这里加上你要查找的执行文件名称  
+	CFileFind fFind;  
+	BOOL bSuccess;  
+	bSuccess=fFind.FindFile(lpszFile);  
+	fFind.Close();  
+	if(bSuccess)  
+	{  
+	   CString fullName;  
+	   fullName=lpszFile;  
+	   RegKey=NULL;  
+	   RegOpenKey(HKEY_LOCAL_MACHINE,"Software\\Microsoft\\Windows\\CurrentVersion\\Run",&RegKey);  
+	   RegSetValueEx(RegKey,"radio_station",0,REG_SZ,(const unsigned char*)(LPCTSTR)fullName,fullName.GetLength());//这里加上你需要在注册表中注册的内容  
+	   this->UpdateData(FALSE);  
+	}  
+	else  
+	{  
+		//theApp.SetMainSkin();  
+		//::AfxMessageBox("没找到执行程序，自动运行失败");  
+		//exit(0);  
+	}  
+
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -331,6 +378,7 @@ void CRadio_stationDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	{
 		CDialog::OnSysCommand(nID, lParam);
 	}
+	if(nID==SC_MINIMIZE) ToTray(); //最小化到托盘的函数
 }
 
 // If you add a minimize button to your dialog, you will need the code below
@@ -405,6 +453,11 @@ void CRadio_stationDlg::OnRadioUnicase()
 void CRadio_stationDlg::OnButtonWakeup() 
 {
 	// TODO: Add your control notification handler code here//
+	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("唤醒帧发送...");
+	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
+	m_frame_send_state.SetIcon(m_hIconOff);
+	KillTimer(1);
+
 	int k=0;
 	int i=0;
 	unsigned char char_buf[4][4]={0};//AES加密
@@ -860,14 +913,17 @@ void CRadio_stationDlg::OnComm1()
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(TRUE);
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='f')&&(frame_receive[2]=='r')&&(frame_receive[3]=='e')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_scan_times)&&(frame_receive[9]==XOR(frame_receive,9)))//频谱扫描
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_scan_times)&&(frame_receive[10]==XOR(frame_receive,10)))//频谱扫描
 	{
 		frequency_buf=76.0+(double)frame_receive[7]/10;
 		strTmp.Format("%.1f",frequency_buf);
 		m_rssi_list.InsertItem(frame_receive[7],strTmp);//插入行
 		strTmp.Format("%d",frame_receive[8]);
 		m_rssi_list.SetItemText(frame_receive[7],1,strTmp);//设置数据
+		strTmp.Format("%d",frame_receive[9]);
+		m_rssi_list.SetItemText(frame_receive[7],2,strTmp);//设置数据
 		m_rssi_list.SendMessage(WM_VSCROLL,SB_BOTTOM,NULL); //随数据滚动
+		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("数据接收...");
 
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='c')&&(frame_receive[2]=='o')&&(frame_receive[3]=='n')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[7]==XOR(frame_receive,7)))//控制帧
@@ -878,7 +934,30 @@ void CRadio_stationDlg::OnComm1()
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='d')&&(frame_receive[2]=='a')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_data_times)&&(frame_receive[7]==XOR(frame_receive,7)))//数据帧反馈信息
 	{
-
+		switch (index_resent_data_frame)
+		{
+		case 1://广播唤醒帧
+			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("广播帧已发送"); 
+			m_frame_send_state.SetIcon(m_hIconRed);
+			break;
+		case 2://单播唤醒帧
+			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("单播帧已发送");
+			m_frame_send_state.SetIcon(m_hIconRed);
+			break;
+		case 3://组播唤醒帧
+			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("组播帧已发送"); 
+			m_frame_send_state.SetIcon(m_hIconRed);
+			break;
+		case 4://控制指令帧
+			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("控制帧已发送");
+			m_frame_send_state.SetIcon(m_hIconRed);
+			break;
+		case 5://认证帧
+			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("认证帧已发送");
+			m_frame_send_state.SetIcon(m_hIconRed);
+			break;
+		}
+		
 
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='r')&&(frame_receive[2]=='s')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==0)&&(frame_receive[7]==0)&&(frame_receive[8]==XOR(frame_receive,8)))//重传帧
@@ -901,6 +980,7 @@ void CRadio_stationDlg::OnComm1()
 		case 5://认证帧
 			break;
 		}
+		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("子板请求重传"); 
 	} 
 	else
 	{
@@ -1267,6 +1347,11 @@ void CRadio_stationDlg::OnSelendokComboAlarmType()
 void CRadio_stationDlg::OnButtonAlarm() 
 {
 	// TODO: Add your control notification handler code here
+	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("控制帧发送...");
+	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
+	m_frame_send_state.SetIcon(m_hIconOff);
+	KillTimer(1);
+
 	int k=0;
 	int i=0;
 	unsigned char char_buf[4][4]={0};//AES加密
@@ -1405,6 +1490,7 @@ void CRadio_stationDlg::OnKillfocusEditBoardFrequency()
 void CRadio_stationDlg::OnButtonScan() 
 {
 	// TODO: Add your control notification handler code here
+	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("开始扫描频谱");
 	int nRows=0,nIndex=0,i=0;
 	m_rssi_list.DeleteAllItems();
 
@@ -1456,18 +1542,10 @@ void CRadio_stationDlg::OnButtonScan()
 
 
 
-	if(flag_scan_button==0){
-		flag_scan_button=1;
-		GetDlgItem(IDC_BUTTON_SCAN)->SetWindowText("取消扫描");
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
-		SetTimer(1,1500,NULL);//1.5秒后使能
+		SetTimer(1,125000,NULL);//5秒后使能
 
-	}else{
-		flag_scan_button=0;
-		GetDlgItem(IDC_BUTTON_SCAN)->SetWindowText("频谱扫描");
-		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
-		SetTimer(1,1500,NULL);//1.5秒后使能
-	}
+
 }
 
 void CRadio_stationDlg::OnTimer(UINT nIDEvent) 
@@ -1476,6 +1554,8 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 	if (nIDEvent==1)
 	{
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
+		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("频谱扫描完成");
+		m_frame_send_state.SetIcon(m_hIconRed);
 		KillTimer(1);
 	} 
 // 	else if(nIDEvent==2)
@@ -1486,4 +1566,84 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 // 	}
 
 	CDialog::OnTimer(nIDEvent);
+}
+
+void CRadio_stationDlg::ToTray()
+{
+	NOTIFYICONDATA nid; 
+    nid.cbSize=(DWORD)sizeof(NOTIFYICONDATA); 
+    nid.hWnd=this->m_hWnd; 
+    nid.uID=IDR_MAINFRAME; 
+    nid.uFlags=NIF_ICON|NIF_MESSAGE|NIF_TIP; 
+    nid.uCallbackMessage=WM_SHOWTASK;//自定义的消息名称 
+    nid.hIcon=LoadIcon(AfxGetInstanceHandle(),MAKEINTRESOURCE(IDI_ICON_RED)); 
+    strcpy(nid.szTip,"程序名称");    //信息提示条 
+    Shell_NotifyIcon(NIM_ADD,&nid);    //在托盘区添加图标 
+//  ShowWindow(SW_HIDE);    //隐藏主窗口
+}
+
+LRESULT CRadio_stationDlg::OnShowTask(WPARAM wParam, LPARAM lParam)
+{
+	if(wParam!=IDR_MAINFRAME) 
+        return 1; 
+    switch(lParam) 
+    {    
+	case WM_RBUTTONUP://右键起来时弹出快捷菜单，这里只有一个“关闭” 
+        { 
+			
+            LPPOINT lpoint=new tagPOINT; 
+            ::GetCursorPos(lpoint);//得到鼠标位置 
+            CMenu menu; 
+            menu.CreatePopupMenu();//声明一个弹出式菜单 
+            //增加菜单项“关闭”，点击则发送消息WM_DESTROY给主窗口（已 
+            //隐藏），将程序结束。
+			menu.AppendMenu(MF_STRING,WM_DESTROY,"退出"); 
+			SetForegroundWindow( );     //增加此句可以解决系统托盘右键菜单不自动消失的问题
+            //确定弹出式菜单的位置 
+            menu.TrackPopupMenu(TPM_LEFTALIGN,lpoint->x,lpoint->y,this); 
+            //资源回收 
+            HMENU hmenu=menu.Detach(); 
+            menu.DestroyMenu(); 
+            delete lpoint; 
+        } 
+		break; 
+	case WM_LBUTTONDBLCLK://双击左键的处理 
+        { 
+			SetTimer(2,1000,NULL);
+            this->ShowWindow(SW_SHOW);//简单的显示主窗口完事儿
+			//			this->SetForegroundWindow();         //置顶显示
+			
+			
+			
+			UpdateWindow();
+		//  DeleteTray();
+        } 
+		break; 
+	default:
+		break;
+    } 
+    return 0; 	
+}
+
+void CRadio_stationDlg::OnClose() 
+{
+	// TODO: Add your message handler code here and/or call default
+	ShowWindow(SW_HIDE);
+//	CDialog::OnClose();
+}
+
+void CRadio_stationDlg::OnDestroy()//选择退出时，托盘区删除图标 
+{
+	CDialog::OnDestroy();
+	
+	// TODO: Add your message handler code here
+	NOTIFYICONDATA nid; 
+	nid.cbSize=(DWORD)sizeof(NOTIFYICONDATA); 
+	nid.hWnd=this->m_hWnd; 
+	nid.uID=IDR_MAINFRAME; 
+	nid.uFlags=NIF_ICON|NIF_MESSAGE|NIF_TIP ; 
+	nid.uCallbackMessage=WM_SHOWTASK;//自定义的消息名称 
+	nid.hIcon=LoadIcon(AfxGetInstanceHandle(),MAKEINTRESOURCE(IDR_MAINFRAME)); 
+	strcpy(nid.szTip,"程序名称");    //信息提示条为“计划任务提醒” 
+	Shell_NotifyIcon(NIM_DELETE,&nid);    //在托盘区删除图标 
 }

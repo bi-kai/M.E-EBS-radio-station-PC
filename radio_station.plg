@@ -6,13 +6,8 @@
 --------------------Configuration: radio_station - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Users\idol\AppData\Local\Temp\RSP3307.tmp" with contents
-[
-/nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /FR"Debug/" /Fp"Debug/radio_station.pch" /Yu"stdafx.h" /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
-"D:\vc\workspace\radio_station\radio_stationDlg.cpp"
-]
-Creating command line "cl.exe @C:\Users\idol\AppData\Local\Temp\RSP3307.tmp" 
-Creating temporary file "C:\Users\idol\AppData\Local\Temp\RSP3308.tmp" with contents
+Creating command line "rc.exe /l 0x804 /fo"Debug/radio_station.res" /d "_DEBUG" /d "_AFXDLL" "D:\vc\workspace\radio_station\radio_station.rc"" 
+Creating temporary file "C:\Users\idol\AppData\Local\Temp\RSP8649.tmp" with contents
 [
 /nologo /subsystem:windows /incremental:yes /pdb:"Debug/radio_station.pdb" /debug /machine:I386 /out:"Debug/radio_station.exe" /pdbtype:sept 
 .\Debug\encrypt.obj
@@ -22,11 +17,11 @@ Creating temporary file "C:\Users\idol\AppData\Local\Temp\RSP3308.tmp" with cont
 .\Debug\StdAfx.obj
 .\Debug\radio_station.res
 ]
-Creating command line "link.exe @C:\Users\idol\AppData\Local\Temp\RSP3308.tmp"
+Creating command line "link.exe @C:\Users\idol\AppData\Local\Temp\RSP8649.tmp"
 <h3>Output Window</h3>
-Compiling...
-radio_stationDlg.cpp
+Compiling resources...
 Linking...
+LINK : LNK6004: Debug/radio_station.exe not found or not built by the last incremental link; performing full link
 Creating command line "bscmake.exe /nologo /o"Debug/radio_station.bsc"  .\Debug\StdAfx.sbr .\Debug\encrypt.sbr .\Debug\mscomm.sbr .\Debug\radio_station.sbr .\Debug\radio_stationDlg.sbr"
 Creating browse info file...
 <h3>Output Window</h3>

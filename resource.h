@@ -37,11 +37,13 @@
 #define IDC_BUTTON_MODIFY               1028
 #define IDC_BUTTON_SAVE                 1029
 #define IDC_COMBO_COMSELECT2            1030
+#define IDC_COMBO_COMSELECT_YW          1030
 #define IDC_STATIC_BOARDCONNECT         1031
 #define IDC_STATIC_BOARD_LED            1032
 #define IDC_EDIT_FREQUENCE              1033
 #define IDC_STATIC_BOARDCONNECT2        1034
 #define IDC_STATIC_BOARD_LED2           1035
+#define IDC_STATIC_BOARD_LED_YW         1035
 #define IDC_EDIT_BOARD_FREQUENCY        1037
 #define IDC_BUTTON_SYS_STOP             1038
 #define IDC_BUTTON_                     1038
@@ -61,6 +63,7 @@
 #define IDC_SLIDER1                     1051
 #define IDC_SLIDER_POWER                1051
 #define IDC_STATIC_POWER                1052
+#define IDC_MSCOMM_YW                   1053
 
 // Next default values for new objects
 // 
@@ -68,7 +71,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1053
+#define _APS_NEXT_CONTROL_VALUE         1054
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

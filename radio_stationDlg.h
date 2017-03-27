@@ -26,6 +26,9 @@ public:
 // Dialog Data
 	//{{AFX_DATA(CRadio_stationDlg)
 	enum { IDD = IDD_RADIO_STATION_DIALOG };
+	CStatic	m_board_led_YW;
+	CStatic	m_ctrlIconOpenoff_YW;
+	CComboBox	m_Com_YW;
 	CSliderCtrl	m_POWER_SELECT;
 	CListCtrl	m_rssi_list;
 	CComboBox	m_alarm_command;
@@ -47,6 +50,7 @@ public:
 	double	m_multi_terminal_id_start;
 	double	m_multi_terminal_id_end;
 	CString	m_power_num;
+	CMSComm	m_comm_YW;
 	//}}AFX_DATA
 
 	// ClassWizard generated virtual function overrides
@@ -102,6 +106,10 @@ protected:
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnCancelMode();
 	afx_msg void OnReleasedcaptureSliderPower(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnButtonConnect_YW();
+	afx_msg void OnComm_YW();
+	afx_msg void OnEditchangeComboComselectYw();
+	afx_msg void OnSelendokComboComselectYw();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -130,7 +138,8 @@ public:
 //	unsigned char
 
 private:
-	int m_DCom;
+	int m_DCom;//广播板串口号
+	int m_DCom_YW;//运维板串口号
 	int m_DStopbits;
 	char m_DParity;
 	int m_DDatabits;
@@ -138,8 +147,10 @@ private:
 	int alarm_index;
 	
 	BOOL SerialPortOpenCloseFlag;//串口打开关闭标志位
+	BOOL SerialPortOpenCloseFlag_YW;//运维串口打开关闭标志位
 	bool flag_modified;//修改唤醒帧字段标志位
 	bool flag_com_init_ack;//上位机软件查询下位机，下位机对查询信息的应答标志位。1:连接成功
+	bool flag_com_init_ack_YW;//上位机软件查询下位机，下位机对查询信息的应答标志位。1:连接成功
 	int frame_index;//接收缓冲帧的索引
 	int frame_send_index;//发送缓冲区无线帧比特流计数器
 	int frame_board_send_index;//子板通信数据帧计数器

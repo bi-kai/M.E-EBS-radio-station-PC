@@ -33,10 +33,11 @@ static char THIS_FILE[] = __FILE__;
 #define FREQUENCY_TERMINAL_START 76.0//终端通信频点最小值
 #define FREQUENCY_TERMINAL_END 108.0//终端通信频点最大值
 
-#define TIMER2_MS 30000//定时器2中断间隔，30s查询一次子板的连接状况
+#define TIMER2_MS 10000//定时器2中断间隔，10s查询一次子板的连接状况
 
 #define BORD_HIDE 206//高级配置，隐藏的界面区域
 
+/***********广播板****************/
 unsigned char frame_board_check[7+2]={'$','r','d','y','_'};//连接检测帧
 unsigned char frame_board_frequency[7+2]={'$','f','r','e','_'};//频谱检测帧
 unsigned char frame_board_control[9+2]={'$','c','o','n','_'};//控制帧
@@ -47,6 +48,14 @@ unsigned char frame_board_bits[1100]={0};//电台终端帧冲区
 unsigned char frame_receive[100]={0};//接收缓冲区
 
 extern unsigned char cipherkey_base[16];//电台私钥
+
+
+/***********运维板***************/
+unsigned char frame_board_check_YW[7+2]={'$','r','d','y','_'};//运维连接检测帧
+unsigned char frame_board_reset_YW[8+2]={'$','r','s','t','_'};//运维复位帧
+unsigned char frame_board_sound_YW[8+2]={'$','s','w','h','_'};//运维切换音频开关申请帧
+unsigned char frame_board_connect_YW[7+2]={'$','p','p','p','_'};//运维上位机两个软件相互查询帧
+unsigned char frame_board_scan_YW[7+2]={'$','s','c','a','_'};//运维频谱扫描，继电器控制帧
 
 /////////////////////////////////////////////////////////////////////////////
 // CAboutDlg dialog used for App About
@@ -118,6 +127,9 @@ void CRadio_stationDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CRadio_stationDlg)
+	DDX_Control(pDX, IDC_STATIC_BOARD_LED_YW, m_board_led_YW);
+	DDX_Control(pDX, IDC_STATIC_YUNWEI, m_ctrlIconOpenoff_YW);
+	DDX_Control(pDX, IDC_COMBO_COMSELECT_YW, m_Com_YW);
 	DDX_Control(pDX, IDC_SLIDER_POWER, m_POWER_SELECT);
 	DDX_Control(pDX, IDC_LIST1, m_rssi_list);
 	DDX_Control(pDX, IDC_COMBO_ALARM_TYPE, m_alarm_command);
@@ -139,6 +151,7 @@ void CRadio_stationDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_MULTICAST_START, m_multi_terminal_id_start);
 	DDX_Text(pDX, IDC_EDIT_MULTICAST_END, m_multi_terminal_id_end);
 	DDX_Text(pDX, IDC_STATIC_POWER, m_power_num);
+	DDX_Control(pDX, IDC_MSCOMM_YW, m_comm_YW);
 	//}}AFX_DATA_MAP
 }
 
@@ -183,6 +196,9 @@ BEGIN_MESSAGE_MAP(CRadio_stationDlg, CDialog)
 	ON_WM_HSCROLL()
 	ON_WM_CANCELMODE()
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_POWER, OnReleasedcaptureSliderPower)
+	ON_BN_CLICKED(IDC_BUTTON_CONNECTYUNWEI, OnButtonConnect_YW)
+	ON_CBN_EDITCHANGE(IDC_COMBO_COMSELECT_YW, OnEditchangeComboComselectYw)
+	ON_CBN_SELENDOK(IDC_COMBO_COMSELECT_YW, OnSelendokComboComselectYw)
 	//}}AFX_MSG_MAP
 	ON_MESSAGE(WM_SHOWTASK,OnShowTask)
 END_MESSAGE_MAP()
@@ -226,8 +242,10 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	m_DBaud=115200;
 	alarm_index=1;
 	SerialPortOpenCloseFlag=FALSE;//默认关闭串口
+	SerialPortOpenCloseFlag_YW=FALSE;
 	flag_modified=0;//修改电台ID标志位
 	flag_com_init_ack=0;//未收到下位机的应答
+	flag_com_init_ack_YW=0;
 	frame_index=0;//接收缓冲帧计数器初始化
 	frame_send_index=0;//发送缓冲计数器初始化
 	index_wakeup_times=0;//连接帧发送次数计数器，上下位机通信，保证每帧数据都不同
@@ -306,10 +324,11 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	m_Rect.top=m_Rect.bottom-20; //设置状态栏的矩形区域
 	m_StatBar->Create(WS_BORDER|WS_VISIBLE|CBRS_BOTTOM,m_Rect,this,3); 
 	
-	int nParts[2]= {385,-1}; //分割尺寸
-	m_StatBar->SetParts(2, nParts); //分割状态栏
+	int nParts[3]= {254,530,-1}; //分割尺寸385
+	m_StatBar->SetParts(3, nParts); //分割状态栏
 	m_StatBar->SetText("帧计数器（已发送）：",0,0); //第一个分栏加入"这是第一个指示器"
-	m_StatBar->SetText("软件及板卡状态：串口未打开",1,0); //以下类似
+	m_StatBar->SetText("运维板状态：串口未打开",2,0); //以下类似
+	m_StatBar->SetText("软件及广播板状态：串口未打开",1,0); //以下类似
 										/*也可使用以下方式加入指示器文字
 										m_StatBar.SetPaneText(0,"这是第一个指示器",0);
 										其他操作：m_StatBar->SetIcon(3,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON3),FALSE));
@@ -328,17 +347,20 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		::WritePrivateProfileString("ConfigInfo","frequency","76.0",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","frequency_native","76.0",".\\config_radiostation.ini");//下位机RDA5820工作频点
 		/**********串口配置**********************/
-		::WritePrivateProfileString("ConfigInfo","com","0",".\\config_radiostation.ini");//串口配置选项组
+		::WritePrivateProfileString("ConfigInfo","com","0",".\\config_radiostation.ini");//串口配置下拉列表对应的下拉项
+		::WritePrivateProfileString("ConfigInfo","com_YW","1",".\\config_radiostation.ini");//运维板串口
 		::WritePrivateProfileString("ConfigInfo","parity","0",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","databits","0",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","speed","5",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","stopbits","0",".\\config_radiostation.ini");
 
-		::WritePrivateProfileString("ConfigInfo","com_r","1",".\\config_radiostation.ini");//串口配置数值组
+		::WritePrivateProfileString("ConfigInfo","com_r","1",".\\config_radiostation.ini");//串口配置下拉列表对应的实际值 real
+		::WritePrivateProfileString("ConfigInfo","com_r_YW","2",".\\config_radiostation.ini");//运维板串口
 		::WritePrivateProfileString("ConfigInfo","parity_r","N",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","databits_r","8",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","speed_r","115200",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","stopbits_r","1",".\\config_radiostation.ini");
+		/************发射功率初始值***********************/
 		::WritePrivateProfileString("ConfigInfo","POWER_SELECT","8",".\\config_radiostation.ini");
 
 	}
@@ -380,6 +402,11 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		m_DCom= (int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
+
+		GetPrivateProfileString("ConfigInfo","com_r_YW","2",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		strBufferReadConfig.ReleaseBuffer();
+		strtmpReadConfig+=","+strBufferReadConfig;
+		m_DCom_YW= (int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
 		
 		GetPrivateProfileString("ConfigInfo","parity_r","N",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
@@ -402,28 +429,32 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		m_DStopbits= (int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
 
 		///////////////////////////////////////////////////////////////////////////
-		GetPrivateProfileString("ConfigInfo","com","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","com","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		((CComboBox*)GetDlgItem(IDC_COMBO_COMSELECT))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
-			
 
-		GetPrivateProfileString("ConfigInfo","parity","N",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","com_YW","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		strBufferReadConfig.ReleaseBuffer();
+		strtmpReadConfig+=","+strBufferReadConfig;
+		((CComboBox*)GetDlgItem(IDC_COMBO_COMSELECT_YW))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。	
+
+		GetPrivateProfileString("ConfigInfo","parity","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		((CComboBox*)GetDlgItem(IDC_COMBO_PARITY))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
 		
-		GetPrivateProfileString("ConfigInfo","databits","8",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","databits","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		((CComboBox*)GetDlgItem(IDC_COMBO_DATABITS))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
 		
-		GetPrivateProfileString("ConfigInfo","speed","115200",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","speed","5",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		((CComboBox*)GetDlgItem(IDC_COMBO_SPEED))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
 		
-		GetPrivateProfileString("ConfigInfo","stopbits","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		GetPrivateProfileString("ConfigInfo","stopbits","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		((CComboBox*)GetDlgItem(IDC_COMBO_STOPBITS))->SetCurSel((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));//设置第n行内容为显示的内容。
@@ -582,7 +613,7 @@ void CRadio_stationDlg::OnButtonWakeup()
 	KillTimer(2);//终端准备连续发送多秒的唤醒帧，此时不检测板卡的连接
 	KillTimer(3);//关闭超时次数统计
 	OnTimer(1);
-	m_StatBar->SetText("软件及板卡状态：唤醒帧未发送",1,0);
+	m_StatBar->SetText("软件及广播板状态：唤醒帧已下发，子板无应答",1,0);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 //	m_frame_send_state.SetIcon(m_hIconOff);
 	
@@ -782,7 +813,7 @@ void CRadio_stationDlg::OnButtonWakeup()
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
 	}
-	SetTimer(2,(TIMER2_MS+m_wakeup_time),NULL);//打开定时器，允许查询子板的链接
+	SetTimer(2,(TIMER2_MS+m_wakeup_time*1000),NULL);//打开定时器，允许查询子板的链接
 }
 //frame_board_bits
 void CRadio_stationDlg::OnSelendokComboComselect() 
@@ -1005,12 +1036,12 @@ void CRadio_stationDlg::OnButtonConnectboard()
 			MessageBox("can not open serial port");
 //			m_comm.SetPortOpen(FALSE);	//	
 		m_comm.SetCommPort(m_DCom); //选择端口，默认是com1
-		m_comm.SetSettings((LPSTR)(LPCTSTR)string1); //波特率9600，无校验，8个数据位，1个停止位
+		m_comm.SetSettings((LPSTR)(LPCTSTR)string1); //波特率115200，无校验，8个数据位，1个停止位
 		if(!m_comm.GetPortOpen())
 		{			
 			m_comm.SetPortOpen(TRUE);//打开串口
-			GetDlgItem(IDC_BUTTON_CONNECTBOARD)->SetWindowText("关闭串口");
-			m_StatBar->SetText("软件及板卡状态：串口已打开",1,0); //以下类似
+			GetDlgItem(IDC_BUTTON_CONNECTBOARD)->SetWindowText("关闭子板串口");
+			m_StatBar->SetText("软件及广播板状态：串口已打开",1,0); //以下类似
 
 			m_ctrlIconOpenoff.SetIcon(m_hIconRed);
 			UpdateData();
@@ -1048,7 +1079,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 			{
 				m_comm.SetOutput(COleVariant(Array));//发送数据
 			}
-			SetTimer(2,TIMER2_MS,NULL);//只有在子板连接上后并且没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接
+			SetTimer(2,TIMER2_MS,NULL);//没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接。恢复硬件连接时，可以自动连接
 		}
 		else
 			MessageBox("无法打开串口，请重试！");	 
@@ -1056,8 +1087,8 @@ void CRadio_stationDlg::OnButtonConnectboard()
 	else
 	{
 		SerialPortOpenCloseFlag=FALSE;
-		GetDlgItem(IDC_BUTTON_CONNECTBOARD)->SetWindowText("打开串口");
-		m_StatBar->SetText("软件及板卡状态：串口已关闭",1,0); //以下类似
+		GetDlgItem(IDC_BUTTON_CONNECTBOARD)->SetWindowText("打开子板串口");
+		m_StatBar->SetText("软件及广播板状态：串口已关闭",1,0); //以下类似
 		m_ctrlIconOpenoff.SetIcon(m_hIconOff);
 		m_board_led.SetIcon(m_hIconOff);
 		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡未连接!");
@@ -1083,6 +1114,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 BEGIN_EVENTSINK_MAP(CRadio_stationDlg, CDialog)
     //{{AFX_EVENTSINK_MAP(CRadio_stationDlg)
 	ON_EVENT(CRadio_stationDlg, IDC_MSCOMM1, 1 /* OnComm */, OnComm1, VTS_NONE)
+	ON_EVENT(CRadio_stationDlg, IDC_MSCOMM_YW, 1 /* OnComm */, OnComm_YW, VTS_NONE)
 	//}}AFX_EVENTSINK_MAP
 END_EVENTSINK_MAP()
 
@@ -1164,7 +1196,7 @@ void CRadio_stationDlg::OnComm1()
 		strTmp.Format("%d",frame_receive[9]);
 		m_rssi_list.SetItemText(frame_receive[7],2,strTmp);//设置数据
 		m_rssi_list.SendMessage(WM_VSCROLL,SB_BOTTOM,NULL); //随数据滚动
-		m_StatBar->SetText("软件及板卡状态：数据接收...",1,0);
+		m_StatBar->SetText("软件及广播板状态：数据接收...",1,0);
 
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='c')&&(frame_receive[2]=='o')&&(frame_receive[3]=='n')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[8]==XOR(frame_receive,8)))//控制帧
@@ -1189,23 +1221,23 @@ void CRadio_stationDlg::OnComm1()
 		switch (index_resent_data_frame)
 		{
 		case 1://广播唤醒帧 
-			m_StatBar->SetText("软件及板卡状态：广播帧已发送",1,0);
+			m_StatBar->SetText("软件及广播板状态：广播帧已发送",1,0);
 //			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		case 2://单播唤醒帧
-			m_StatBar->SetText("软件及板卡状态：单播帧已发送",1,0);
+			m_StatBar->SetText("软件及广播板状态：单播帧已发送",1,0);
 //			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		case 3://组播唤醒帧
-			m_StatBar->SetText("软件及板卡状态：组播帧已发送",1,0);
+			m_StatBar->SetText("软件及广播板状态：组播帧已发送",1,0);
 //			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		case 4://控制指令帧
-			m_StatBar->SetText("软件及板卡状态：控制帧已发送",1,0);
+			m_StatBar->SetText("软件及广播板状态：控制帧已发送",1,0);
 //			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		case 5://认证帧
-			m_StatBar->SetText("软件及板卡状态：认证帧已发送",1,0);
+			m_StatBar->SetText("软件及广播板状态：认证帧已发送",1,0);
 //			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		}
@@ -1233,7 +1265,7 @@ void CRadio_stationDlg::OnComm1()
 		case 5://认证帧
 			break;
 		}
-		m_StatBar->SetText("软件及板卡状态：子板请求重传",1,0);
+		m_StatBar->SetText("软件及广播板状态：子板请求重传",1,0);
 	} 
 	else
 	{
@@ -1612,8 +1644,10 @@ void CRadio_stationDlg::OnSelendokComboAlarmType()
 void CRadio_stationDlg::OnButtonAlarm() 
 {
 	// TODO: Add your control notification handler code here
+	KillTimer(2);
+	KillTimer(3);
 	OnTimer(1);
-	m_StatBar->SetText("软件及板卡状态：控制帧未发送",1,0);
+	m_StatBar->SetText("软件及广播板状态：控制帧已下发，子板无应答",1,0);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 //	m_frame_send_state.SetIcon(m_hIconOff);
 	
@@ -1762,6 +1796,7 @@ void CRadio_stationDlg::OnButtonAlarm()
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
 	}
+	SetTimer(2,(TIMER2_MS+m_wakeup_time*1000),NULL);//打开定时器，允许查询子板的链接
 }
 
 void CRadio_stationDlg::OnKillfocusEditBoardFrequency() 
@@ -1787,7 +1822,7 @@ void CRadio_stationDlg::OnButtonScan()
 {
 	// TODO: Add your control notification handler code here
 	KillTimer(2);
-	m_StatBar->SetText("软件及板卡状态：开始扫描频谱",1,0);
+	m_StatBar->SetText("软件及广播板状态：开始扫描频谱",1,0);
 	GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
 	flag_fre_is_scaning=1;//标志开始扫描频谱
 	int nRows=0,nIndex=0,i=0;
@@ -1859,15 +1894,15 @@ void CRadio_stationDlg::OnButtonScan()
 void CRadio_stationDlg::OnTimer(UINT nIDEvent) 
 {
 	// TODO: Add your message handler code here and/or call default
-	if (nIDEvent==1)
+	if (nIDEvent==1)//频谱扫描完，恢复扫描按钮为可用状态
 	{
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->EnableWindow(TRUE);
-		m_StatBar->SetText("软件及板卡状态：频谱扫描完成",1,0);
+		m_StatBar->SetText("软件及广播板状态：频谱扫描完成",1,0);
 //		m_frame_send_state.SetIcon(m_hIconRed);
 		flag_fre_is_scaning=0;//标志停止扫描频谱
 		KillTimer(1);
-		SetTimer(2,TIMER2_MS,NULL);//只有在子板连接上后并且没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接
+		SetTimer(2,TIMER2_MS,NULL);//没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接。恢复硬件连接时，可以自动连接
 	} 
 	else if(nIDEvent==2)
 	{
@@ -1933,10 +1968,12 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 		KillTimer(3);
 	}
 	else if(nIDEvent==4){//广播语音，使用先开始说话，再发送唤醒帧的机制，因为发送唤醒帧时，终端是不能被中断的，也就是接收不了广播控制帧
-		OnButtonWakeup();//先执行一次唤醒，这样方便用户操作，不用点击唤醒按钮了。此外，可以打断正在扫描频谱的动作（如果在扫描的话）。
 		KillTimer(4);//此处先关闭定时器，之后要做定时发送认证帧
+		OnButtonWakeup();//先执行一次唤醒，这样方便用户操作，不用点击唤醒按钮了。此外，可以打断正在扫描频谱的动作（如果在扫描的话）。
+		
 	}
-	else if(nIDEvent==5){
+	else if(nIDEvent==5){//停止语音广播
+		KillTimer(5);
 		if (index_control_times<200)
 		{
 			index_control_times++;
@@ -1972,7 +2009,42 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 		{
 			m_comm.SetOutput(COleVariant(Array));//发送数据
 		}
-		KillTimer(5);
+		
+	}else if (nIDEvent==6)//定时发送运维板查询帧
+	{
+		if (index_wakeup_times<200)
+		{
+			index_wakeup_times++;
+			if ((index_wakeup_times==0x0d)||(index_wakeup_times==0x24))
+			{
+				index_wakeup_times++;
+			}
+		} 
+		else
+		{
+			index_wakeup_times=0;
+		}
+		frame_board_check_YW[5]=index_wakeup_times;
+		frame_board_check_YW[6]=XOR(frame_board_check_YW,6);
+		if ((frame_board_check_YW[6]=='$')||(frame_board_check_YW[6]==0x0d))
+		{
+			frame_board_check_YW[6]++;//如果异或结果是$或0x0d，则值加一
+		}
+		frame_board_check_YW[7]='\r';
+		frame_board_check_YW[8]='\n';
+		CByteArray Array;
+		Array.RemoveAll();
+		Array.SetSize(7+2);
+		
+		for (int i=0;i<(7+2);i++)
+		{
+			Array.SetAt(i,frame_board_check_YW[i]);
+		}
+		
+		if(m_comm_YW.GetPortOpen())
+		{
+			m_comm_YW.SetOutput(COleVariant(Array));//发送数据
+		}
 	}
 
 	CDialog::OnTimer(nIDEvent);
@@ -2132,7 +2204,7 @@ void CRadio_stationDlg::OnButtonIdentify()
 	KillTimer(2);//终端准备连续发送多秒的唤醒帧，此时不检测板卡的连接
 	KillTimer(3);//关闭超时次数统计
 	OnTimer(1);
-	m_StatBar->SetText("软件及板卡状态：认证帧未发送",1,0);
+	m_StatBar->SetText("软件及广播板状态：认证帧已下发，子板无应答",1,0);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 //	m_frame_send_state.SetIcon(m_hIconOff);
 
@@ -2238,7 +2310,7 @@ void CRadio_stationDlg::OnButtonIdentify()
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
 	}
-	SetTimer(2,TIMER2_MS,NULL);//打开定时器，允许查询子板的链接
+	SetTimer(2,(TIMER2_MS+m_wakeup_time*1000),NULL);//打开定时器，允许查询子板的链接
 
 }
 
@@ -2356,4 +2428,130 @@ void CRadio_stationDlg::OnReleasedcaptureSliderPower(NMHDR* pNMHDR, LRESULT* pRe
 
 
 	*pResult = 0;
+}
+
+void CRadio_stationDlg::OnButtonConnect_YW() 
+{
+	// TODO: Add your control notification handler code here
+	char buff[2];
+	CString string1="",string2="";
+	buff[1]='\0';
+	buff[0]=m_DParity;
+	string1.Format(_T("%d"),m_DBaud);
+	string1+=",";
+	string2=buff;
+	string1+=string2;
+	string1+=",";
+	string2.Format(_T("%d"),m_DDatabits); 
+	string1+=string2;
+	string1+=",";
+	string2.Format(_T("%d"),m_DStopbits);
+	string1+=string2;
+/*
+	CString   tmp;
+	tmp.Format( "%d ",string1);
+	MessageBox( "config:"+string1);
+*/
+	if(SerialPortOpenCloseFlag_YW==FALSE)
+	{
+		SerialPortOpenCloseFlag_YW=TRUE;
+
+		//以下是串口的初始化配置
+		if(m_comm_YW.GetPortOpen())//打开端口前的检测，先关，再开
+			MessageBox("can not open serial port");
+//			m_comm.SetPortOpen(FALSE);	//	
+		m_comm_YW.SetCommPort(m_DCom_YW); //选择端口，默认是com2
+		m_comm_YW.SetSettings((LPSTR)(LPCTSTR)string1); //波特率115200，无校验，8个数据位，1个停止位
+		if(!m_comm_YW.GetPortOpen())
+		{			
+			m_comm_YW.SetPortOpen(TRUE);//打开串口
+			GetDlgItem(IDC_BUTTON_CONNECTYUNWEI)->SetWindowText("关闭运维串口");
+			m_StatBar->SetText("软件及广播板状态：串口已打开",2,0); //以下类似
+
+			m_ctrlIconOpenoff_YW.SetIcon(m_hIconRed);
+			UpdateData();
+
+			if (index_wakeup_times<200)
+			{
+				index_wakeup_times++;
+				if ((index_wakeup_times==0x0d)||(index_wakeup_times==0x24))
+				{
+					index_wakeup_times++;
+				}
+			} 
+			else
+			{
+				index_wakeup_times=0;
+			}
+			frame_board_check_YW[5]=index_wakeup_times;
+			frame_board_check_YW[6]=XOR(frame_board_check_YW,6);
+			if ((frame_board_check_YW[6]=='$')||(frame_board_check_YW[6]==0x0d))
+			{
+				frame_board_check_YW[6]++;//如果异或结果是$或0x0d，则值加一
+			}
+			frame_board_check_YW[7]='\r';
+			frame_board_check_YW[8]='\n';
+			CByteArray Array;
+			Array.RemoveAll();
+			Array.SetSize(7+2);
+									
+			for (int i=0;i<(7+2);i++)
+			{
+				Array.SetAt(i,frame_board_check_YW[i]);
+			}
+
+			if(m_comm_YW.GetPortOpen())
+			{
+				m_comm_YW.SetOutput(COleVariant(Array));//发送数据
+			}
+			SetTimer(6,(TIMER2_MS+3000),NULL);//没有处在频谱扫描阶段才打开定期查询，10+3秒(与广播板的查询在时间上错开)查询一次子板是否保持连接。恢复硬件连接时，可以自动连接
+		}
+		else
+			MessageBox("无法打开运维板串口，请重试！");	 
+	}
+	else
+	{
+		SerialPortOpenCloseFlag_YW=FALSE;
+		GetDlgItem(IDC_BUTTON_CONNECTYUNWEI)->SetWindowText("打开运维串口");
+		m_StatBar->SetText("软件及广播板状态：串口已关闭",2,0); //以下类似
+		m_ctrlIconOpenoff_YW.SetIcon(m_hIconOff);
+		m_board_led_YW.SetIcon(m_hIconOff);
+		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡未连接!");
+		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BUTTON_ALARM)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
+		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(FALSE);
+		GetDlgItem(IDC_SLIDER_POWER)->EnableWindow(FALSE);
+		flag_com_init_ack_YW=0;//运维板未连接
+		m_comm_YW.SetPortOpen(FALSE);//关闭串口
+		KillTimer(2);
+
+	}
+}
+
+void CRadio_stationDlg::OnComm_YW() 
+{
+	// TODO: Add your control notification handler code here
+	
+}
+
+void CRadio_stationDlg::OnEditchangeComboComselectYw() 
+{
+	
+}
+
+void CRadio_stationDlg::OnSelendokComboComselectYw() 
+{
+	// TODO: Add your control notification handler code here
+	m_DCom_YW=m_Com_YW.GetCurSel()+1;
+	UpdateData();
+	
+	CString strTemp;
+	strTemp.Format(_T("%d"),m_DCom_YW-1);
+	::WritePrivateProfileString("ConfigInfo","com_YW",strTemp,".\\config_radiostation.ini");
+	
+	strTemp.Format(_T("%d"),m_DCom_YW);
+	::WritePrivateProfileString("ConfigInfo","com_r_YW",strTemp,".\\config_radiostation.ini");
 }

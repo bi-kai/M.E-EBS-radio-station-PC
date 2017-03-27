@@ -616,9 +616,9 @@ void CRadio_stationDlg::OnRadioUnicase()
 void CRadio_stationDlg::OnButtonWakeup() 
 {
 	// TODO: Add your control notification handler code here//
+	OnTimer(1);
 	KillTimer(2);//终端准备连续发送多秒的唤醒帧，此时不检测板卡的连接
 	KillTimer(3);//关闭超时次数统计
-	OnTimer(1);
 	m_StatBar->SetText("软件及广播板状态：唤醒帧已下发，子板无应答",1,0);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 //	m_frame_send_state.SetIcon(m_hIconOff);
@@ -1653,9 +1653,9 @@ void CRadio_stationDlg::OnSelendokComboAlarmType()
 void CRadio_stationDlg::OnButtonAlarm() 
 {
 	// TODO: Add your control notification handler code here
-	KillTimer(2);
-	KillTimer(3);
 	OnTimer(1);
+	KillTimer(2);
+	KillTimer(3);	
 	m_StatBar->SetText("软件及广播板状态：控制帧已下发，子板无应答",1,0);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 //	m_frame_send_state.SetIcon(m_hIconOff);
@@ -1805,7 +1805,7 @@ void CRadio_stationDlg::OnButtonAlarm()
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
 	}
-	SetTimer(2,(TIMER2_MS+m_wakeup_time*1000),NULL);//打开定时器，允许查询子板的链接
+	SetTimer(2,(TIMER2_MS+m_wakeup_time*3000),NULL);//打开定时器，允许查询子板的链接。报警帧间隔大约1s，所费总时间为唤醒帧的3倍
 }
 
 void CRadio_stationDlg::OnKillfocusEditBoardFrequency() 
@@ -1951,10 +1951,9 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->EnableWindow(TRUE);
 		m_StatBar->SetText("软件及广播板状态：频谱扫描完成",1,0);
-//		m_frame_send_state.SetIcon(m_hIconRed);
 		flag_fre_is_scaning=0;//标志停止扫描频谱
 		KillTimer(1);
-		SetTimer(2,TIMER2_MS,NULL);//没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接。恢复硬件连接时，可以自动连接
+		SetTimer(2,TIMER2_MS,NULL);//频谱扫描完成或被终止才打开定期查询，10秒查询一次子板是否保持连接。恢复硬件连接时，可以自动连接
 	} 
 	else if(nIDEvent==2)
 	{
@@ -2062,7 +2061,7 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 			m_comm.SetOutput(COleVariant(Array));//发送数据
 		}
 		
-	}else if (nIDEvent==6)//定时发送运维板查询帧
+	}else if (nIDEvent==6)//定时发送运维板查询帧，类似于定时器2
 	{
 		if (index_wakeup_times<200)
 		{
@@ -2101,7 +2100,7 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 		if(timer_board_disconnect_times_YW==0)timer_board_disconnect_times_YW++;
 		SetTimer(7,1000,NULL);//定时器6发出轮检查询帧后，打开定时器7，3次超时timer_board_disconnect_times_YW未被清零，则标记故障
 	
-	}else if(nIDEvent==7){//运维板查询不通，次数统计
+	}else if(nIDEvent==7){//运维板查询不通，次数统计.类似于定时器3
 		if (timer_board_disconnect_times_YW!=0)
 		{
 			timer_board_disconnect_times_YW++;
@@ -2214,7 +2213,11 @@ void CRadio_stationDlg::OnDestroy()//选择退出时，托盘区删除图标
 void CRadio_stationDlg::OnButtonVoice() 
 {
 	// TODO: Add your control notification handler code here
-	
+	if (flag_fre_is_scaning!=0)//正在频谱扫描
+	{
+		OnButtonWakeup();//随便发个帧，碰撞一下，停止频谱扫描
+	}
+
 	if ((flag_voice_broad==0)&&(flag_fre_is_scaning==0))
 	{
 		flag_voice_broad=1;
@@ -2270,10 +2273,8 @@ void CRadio_stationDlg::OnButtonVoice()
 // 		OnButtonAlarm();
 // 		Sleep(450);
 // 		OnButtonAlarm();
-		SetTimer(5,500,NULL);//定时器中通知下位机停止广播。500ms后使能,留点时间给子板发反馈帧
+		SetTimer(5,(500+m_wakeup_time*3000),NULL);//定时器中通知下位机停止广播。留点时间给子板发反馈帧
 	}
-	flag_fre_is_scaning=0;//标志停止扫描频谱
-
 	
 
 //	if(flag_voice_broad==1)//开始广播时，才发送唤醒
@@ -2283,9 +2284,10 @@ void CRadio_stationDlg::OnButtonVoice()
 void CRadio_stationDlg::OnButtonIdentify() 
 {
 	// TODO: Add your control notification handler code here
+	OnTimer(1);
 	KillTimer(2);//终端准备连续发送多秒的唤醒帧，此时不检测板卡的连接
 	KillTimer(3);//关闭超时次数统计
-	OnTimer(1);
+	
 	m_StatBar->SetText("软件及广播板状态：认证帧已下发，子板无应答",1,0);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 //	m_frame_send_state.SetIcon(m_hIconOff);

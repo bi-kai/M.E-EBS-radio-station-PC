@@ -1118,7 +1118,7 @@ void CRadio_stationDlg::OnComm1()
 		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("数据接收...");
 
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='c')&&(frame_receive[2]=='o')&&(frame_receive[3]=='n')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[8]==XOR(frame_receive,7)))//控制帧
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[8]==XOR(frame_receive,8)))//控制帧
 	{
 		if (frame_receive[7]==2)
 		{
@@ -1127,7 +1127,7 @@ void CRadio_stationDlg::OnComm1()
 		else if (frame_receive[7]==3)
 		{
 			AfxMessageBox("开始广播",MB_OK,0);
-		}else if (frame_receive[7]==3)
+		}else if (frame_receive[7]==4)
 		{
 			AfxMessageBox("停止广播",MB_OK,0);
 		}
@@ -1384,7 +1384,7 @@ void CRadio_stationDlg::OnKillfocusEditWakeupSeconds()
 	// TODO: Add your control notification handler code here
 	CString strBufferReadConfig,strtmpReadConfig;
 	UpdateData(TRUE);    
-	if ((m_wakeup_time>150) || (m_wakeup_time<0))    
+	if ((m_wakeup_time>201) || (m_wakeup_time<0))    
 	{        
 		GetPrivateProfileString("ConfigInfo","wakeup_time","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();

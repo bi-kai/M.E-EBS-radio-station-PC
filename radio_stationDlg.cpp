@@ -1632,10 +1632,17 @@ void CRadio_stationDlg::OnButtonAlarm()
 	frame_type[1]=0;
 	if ((terminal_control_index>0)&&(terminal_control_index<1024))//标志指定的控制。如：100：广播完毕；
 	{
-		alarm_index=terminal_control_index;
-	}else{
-		OnSelendokComboAlarmType();//如果不是一些特殊控制指令，如100，则重新获取下拉框中的选项的索引号
+		if (terminal_control_index<=99)
+		{
+			OnSelendokComboAlarmType();//如果不是一些特殊控制指令，如100，则重新获取下拉框中的选项的索引号
+		} 
+		else if(terminal_control_index>99)
+		{
+			alarm_index=terminal_control_index;
+		}
+		
 	}
+
 	int_bits(alarm_index,control_region,10);
 	
 	i=(int)m_frame_counter;

@@ -38,7 +38,7 @@ HeaderFile=radio_stationDlg.h
 ImplementationFile=radio_stationDlg.cpp
 Filter=D
 VirtualFilter=dWC
-LastObject=IDC_COMBO_COMSELECT_YW
+LastObject=IDC_STATIC_OPENOFF
 
 [DLG:IDD_ABOUTBOX]
 Type=1

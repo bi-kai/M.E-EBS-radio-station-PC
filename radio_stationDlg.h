@@ -117,6 +117,7 @@ protected:
 public:
 	bool flag_fre_is_scaning;//正在扫描频谱
 	int timer_board_disconnect_times;//定时器3统计尝试连接次数，达到3次则判断子板未连接
+	int timer_board_disconnect_times_YW;//定时器6统计尝试连接次数，达到3次则判断运维板未连接
 //	LRESULT OnShowTask( WPARAM wParam,LPARAM lParam );
 	void ToTray();
 	void four_bits_ASCII(unsigned char* a,unsigned char* b,int len,int index);
@@ -152,6 +153,7 @@ private:
 	bool flag_com_init_ack;//上位机软件查询下位机，下位机对查询信息的应答标志位。1:连接成功
 	bool flag_com_init_ack_YW;//上位机软件查询下位机，下位机对查询信息的应答标志位。1:连接成功
 	int frame_index;//接收缓冲帧的索引
+	int frame_index_YW;//运维串口接收缓冲帧的索引
 	int frame_send_index;//发送缓冲区无线帧比特流计数器
 	int frame_board_send_index;//子板通信数据帧计数器
 	int index_frequency_point;//下位机反馈频点计数器

@@ -239,6 +239,8 @@ BOOL CRadio_stationDlg::OnInitDialog()
 // 	m_Speed.SetCurSel(5);
 // 	m_StopBits.SetCurSel(0);
 // 	m_Parity.SetCurSel(0);
+	flag_voice_broad=0;
+	voice_broad=0;
 
 	GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_ID)->EnableWindow(FALSE);
@@ -1116,9 +1118,20 @@ void CRadio_stationDlg::OnComm1()
 		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("数据接收...");
 
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='c')&&(frame_receive[2]=='o')&&(frame_receive[3]=='n')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[7]==XOR(frame_receive,7)))//控制帧
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[8]==XOR(frame_receive,7)))//控制帧
 	{
-		AfxMessageBox("下位机频点配置成功！",MB_OK,0);
+		if (frame_receive[7]==2)
+		{
+			AfxMessageBox("下位机频点配置成功！",MB_OK,0);
+		} 
+		else if (frame_receive[7]==3)
+		{
+			AfxMessageBox("开始广播",MB_OK,0);
+		}else if (frame_receive[7]==3)
+		{
+			AfxMessageBox("停止广播",MB_OK,0);
+		}
+		
 
 
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='d')&&(frame_receive[2]=='a')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
@@ -1934,7 +1947,54 @@ void CRadio_stationDlg::OnDestroy()//选择退出时，托盘区删除图标
 void CRadio_stationDlg::OnButtonVoice() 
 {
 	// TODO: Add your control notification handler code here
+	if (flag_voice_broad==0)
+	{
+		flag_voice_broad=1;
+		voice_broad=3;
+		GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("停止广播");
+	} 
+	else
+	{
+		flag_voice_broad=0;
+		voice_broad=4;
+		GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
+	}
+
+	if (index_control_times<200)
+	{
+		index_control_times++;
+		if ((index_control_times==0x0d)||(index_control_times==0x24))
+		{
+			index_control_times++;
+		}
+	} 
+	else
+	{
+		index_control_times=0;
+	}
+	frame_board_control[5]=index_control_times;
+	frame_board_control[6]=voice_broad;	
+	frame_board_control[7]=0;//用0填充，保持帧结构的一致性
+	frame_board_control[8]=XOR(frame_board_control,8);
+	if ((frame_board_control[8]=='$')||(frame_board_control[8]==0x0d))
+	{
+		frame_board_control[8]++;//如果异或结果是$或0x0d，则值加一
+	}
+	frame_board_control[9]='\r';
+	frame_board_control[10]='\n';
+	CByteArray Array;
+	Array.RemoveAll();
+	Array.SetSize(9+2);
 	
+	for (int i=0;i<(9+2);i++)
+	{
+		Array.SetAt(i,frame_board_control[i]);
+	}
+	
+	if(m_comm.GetPortOpen())
+	{
+		m_comm.SetOutput(COleVariant(Array));//发送数据
+	}
 }
 
 void CRadio_stationDlg::OnButtonIdentify() 

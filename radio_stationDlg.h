@@ -147,6 +147,8 @@ private:
 	int index_resent_data_frame;//重传帧编号
 
 	CStatusBarCtrl *m_StatBar;
+	bool flag_voice_broad;//软件界面上开始广播停止广播文字切换标志位
+	int voice_broad;//语音广播标志位3：开始广播；4：停止广播；
 
 };
 

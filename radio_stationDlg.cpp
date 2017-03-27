@@ -249,6 +249,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	flag_voice_broad=0;
 	voice_broad=0;
 	flag_fre_is_scaning=0;
+//	m_frame_counter=0;//帧计数器
 
 	GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_ID)->EnableWindow(FALSE);
@@ -258,7 +259,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	GetDlgItem(IDC_BUTTON_ALARM)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_BOARD_FREQUENCY)->EnableWindow(FALSE);
-	GetDlgItem(IDC_BUTTON_SYS_STOP)->EnableWindow(FALSE);
+//	GetDlgItem(IDC_BUTTON_SYS_STOP)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON_BOARD_CONFIG)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_UNICAST)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_MULTICAST_START)->EnableWindow(FALSE);
@@ -281,6 +282,23 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	}
 	else
 		 MessageBox("can not open serial port");
+/****************************状态栏**************************************/
+	m_StatBar=new CStatusBarCtrl;//状态栏
+	RECT m_Rect; 
+	GetClientRect(&m_Rect); //获取对话框的矩形区域
+	m_Rect.top=m_Rect.bottom-20; //设置状态栏的矩形区域
+	m_StatBar->Create(WS_BORDER|WS_VISIBLE|CBRS_BOTTOM,m_Rect,this,3); 
+	
+	int nParts[2]= {385,-1}; //分割尺寸
+	m_StatBar->SetParts(2, nParts); //分割状态栏
+	m_StatBar->SetText("帧计数器（已发送）：",0,0); //第一个分栏加入"这是第一个指示器"
+	m_StatBar->SetText("软件及板卡状态：串口未打开",1,0); //以下类似
+										/*也可使用以下方式加入指示器文字
+										m_StatBar.SetPaneText(0,"这是第一个指示器",0);
+										其他操作：m_StatBar->SetIcon(3,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON3),FALSE));
+										//在第四个分栏中加入ID为IDI_ICON3的图标*/
+//	m_StatBar->SetIcon(2,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON_OFF),FALSE));
+	m_StatBar->ShowWindow(SW_SHOW); 
 /**************************INI配置*******************************/
 	CFileFind finder;   //查找是否存在ini文件，若不存在，则生成一个新的默认设置的ini文件，这样就保证了我们更改后的设置每次都可用
 	BOOL ifFind = finder.FindFile(_T(".\\config_radiostation.ini"));
@@ -315,6 +333,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		GetPrivateProfileString("ConfigInfo","frame_counter","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
+		m_StatBar->SetText("帧计数器（已发送）："+strBufferReadConfig,0,0);
 		m_frame_counter= (int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
 	
 		GetPrivateProfileString("ConfigInfo","wakeup_time","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
@@ -386,23 +405,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 
 		UpdateData(FALSE);
 //	((CButton *)GetDlgItem(IDC_RADIO_BROADCAST))->SetCheck(TRUE);//选上
-/****************************状态栏**************************************/
-// 	m_StatBar=new CStatusBarCtrl;
-// 	RECT m_Rect; 
-// 	GetClientRect(&m_Rect); //获取对话框的矩形区域
-// 	m_Rect.top=m_Rect.bottom-20; //设置状态栏的矩形区域
-// 	m_StatBar->Create(WS_BORDER|WS_VISIBLE|CBRS_BOTTOM,m_Rect,this,3); 
-// 	
-// 	int nParts[4]= {100, 200, 300,-1}; //分割尺寸
-// 	m_StatBar->SetParts(4, nParts); //分割状态栏
-// 	m_StatBar->SetText("这是第一个指示器",0,0); //第一个分栏加入"这是第一个指示器"
-// 	m_StatBar->SetText("这是第二个指示器",1,0); //以下类似
-// 										/*也可使用以下方式加入指示器文字
-// 										m_StatBar.SetPaneText(0,"这是第一个指示器",0);
-// 										其他操作：m_StatBar->SetIcon(3,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON3),FALSE));
-// 										//在第四个分栏中加入ID为IDI_ICON3的图标*/
-// 	m_StatBar->SetIcon(3,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON_OFF),FALSE));
-// 	m_StatBar->ShowWindow(SW_SHOW); 
+
 /**************************RSSI列表配置**********************************/
 	m_rssi_list.ModifyStyle( 0, LVS_REPORT );// 报表模式
 	m_rssi_list.SetExtendedStyle(m_rssi_list.GetExtendedStyle() | LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);// 间隔线+行选中
@@ -748,6 +751,8 @@ void CRadio_stationDlg::OnButtonWakeup()
 	{
 		m_frame_counter++;//帧计数器自增
 		CString strTemp;
+		strTemp.Format("%d",m_frame_counter);
+		m_StatBar->SetText("帧计数器（已发送）："+strTemp,0,0);		
 		strTemp.Format(_T("%d"),m_frame_counter);
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
@@ -980,6 +985,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 		{			
 			m_comm.SetPortOpen(TRUE);//打开串口
 			GetDlgItem(IDC_BUTTON_CONNECTBOARD)->SetWindowText("关闭串口");
+			m_StatBar->SetText("软件及板卡状态：串口已打开",1,0); //以下类似
 
 			m_ctrlIconOpenoff.SetIcon(m_hIconRed);
 			UpdateData();
@@ -1026,6 +1032,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 	{
 		SerialPortOpenCloseFlag=FALSE;
 		GetDlgItem(IDC_BUTTON_CONNECTBOARD)->SetWindowText("打开串口");
+		m_StatBar->SetText("软件及板卡状态：串口已关闭",1,0); //以下类似
 		m_ctrlIconOpenoff.SetIcon(m_hIconOff);
 		m_board_led.SetIcon(m_hIconOff);
 		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡未连接!");
@@ -1412,7 +1419,7 @@ void CRadio_stationDlg::OnButtonBoardModify()
 		{
 			flag_board_modified=1;//还原为按下修改前的按键状态
 			GetDlgItem(IDC_EDIT_BOARD_FREQUENCY)->EnableWindow(TRUE);
-			GetDlgItem(IDC_BUTTON_SYS_STOP)->EnableWindow(TRUE);
+//			GetDlgItem(IDC_BUTTON_SYS_STOP)->EnableWindow(TRUE);
 			GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->SetWindowText(_T("取消"));
 			GetDlgItem(IDC_BUTTON_BOARD_CONFIG)->EnableWindow(TRUE);
 		} 
@@ -1420,7 +1427,7 @@ void CRadio_stationDlg::OnButtonBoardModify()
 		{
 			flag_board_modified=0;
 			GetDlgItem(IDC_EDIT_BOARD_FREQUENCY)->EnableWindow(FALSE);
-			GetDlgItem(IDC_BUTTON_SYS_STOP)->EnableWindow(FALSE);
+//			GetDlgItem(IDC_BUTTON_SYS_STOP)->EnableWindow(FALSE);
 			GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->SetWindowText(_T("修改"));
 			GetDlgItem(IDC_BUTTON_BOARD_CONFIG)->EnableWindow(FALSE);
 			UpdateData(FALSE);
@@ -1436,7 +1443,7 @@ void CRadio_stationDlg::OnButtonBoardConfig()
 	// TODO: Add your control notification handler code here
 	flag_board_modified=0;//还原为按下修改前的按键状态
 	GetDlgItem(IDC_EDIT_BOARD_FREQUENCY)->EnableWindow(FALSE);
-	GetDlgItem(IDC_BUTTON_SYS_STOP)->EnableWindow(FALSE);
+//	GetDlgItem(IDC_BUTTON_SYS_STOP)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->SetWindowText(_T("修改"));
 	GetDlgItem(IDC_BUTTON_BOARD_CONFIG)->EnableWindow(FALSE);	
 	UpdateData();
@@ -1701,6 +1708,8 @@ void CRadio_stationDlg::OnButtonAlarm()
 	{
 		m_frame_counter++;//帧计数器自增
 		CString strTemp;
+		strTemp.Format("%d",m_frame_counter);
+		m_StatBar->SetText("帧计数器（已发送）："+strTemp,0,0);
 		strTemp.Format(_T("%d"),m_frame_counter);
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
@@ -2118,6 +2127,8 @@ void CRadio_stationDlg::OnButtonIdentify()
 		m_comm.SetOutput(COleVariant(Array));//发送数据
 		m_frame_counter++;//帧计数器自增
 		CString strTemp;
+		strTemp.Format("%d",m_frame_counter);
+		m_StatBar->SetText("帧计数器（已发送）："+strTemp,0,0);
 		strTemp.Format(_T("%d"),m_frame_counter);
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上

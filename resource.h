@@ -42,6 +42,8 @@
 #define IDC_STATIC_FRAMESEND_LED        1036
 #define IDC_EDIT_BOARD_FREQUENCY        1037
 #define IDC_BUTTON_SYS_STOP             1038
+#define IDC_BUTTON_                     1038
+#define IDC_BUTTON_ADVANCED             1038
 #define IDC_BUTTON_BOARD_MODIFY         1039
 #define IDC_BUTTON_BOARD_CONFIG         1040
 #define IDC_BUTTON_SCAN                 1041

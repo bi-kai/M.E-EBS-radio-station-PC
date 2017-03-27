@@ -119,6 +119,8 @@ public:
 	unsigned char target_address_multicast_end[24];//多播目标终止地址
 	unsigned char frame_counter[36];//帧计数器
 	unsigned char MAC_AES[36];//AES后缀
+
+//	int	m_frame_counter;//帧计数器
 	
 //	unsigned char
 
@@ -147,7 +149,7 @@ private:
 //	bool flag_scan_button;//扫描按钮上文字切换
 	int index_resent_data_frame;//重传帧编号
 
-	CStatusBarCtrl *m_StatBar;
+	CStatusBarCtrl *m_StatBar;//状态栏
 	bool flag_voice_broad;//软件界面上开始广播停止广播文字切换标志位
 	int voice_broad;//语音广播标志位3：开始广播；4：停止广播；
 

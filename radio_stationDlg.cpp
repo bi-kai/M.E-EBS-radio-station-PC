@@ -1605,9 +1605,11 @@ void CRadio_stationDlg::OnButtonAlarm(int con)
 	
 	frame_type[0]=1;//帧类型：控制帧10
 	frame_type[1]=0;
-	if (con>0)//标志指定的控制。如：100：广播完毕；
+	if ((con>0)&&(con<1024))//标志指定的控制。如：100：广播完毕；
 	{
 		alarm_index=con;
+	}else{
+		OnSelendokComboAlarmType();//如果不是一些特殊控制指令，如100，则重新获取下拉框中的选项的索引号
 	}
 	int_bits(alarm_index,control_region,10);
 	

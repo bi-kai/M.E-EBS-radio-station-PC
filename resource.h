@@ -30,7 +30,7 @@
 #define IDC_COMBO_DATABITS              1022
 #define IDC_COMBO_STOPBITS              1023
 #define IDC_COMBO_ALARM_TYPE            1024
-#define IDC_EDIT_FRAME_COUNTER          1025
+//#define IDC_EDIT_FRAME_COUNTER          1025
 #define IDC_BUTTON_VOICE                1026
 #define IDC_EDIT_ID                     1027
 #define IDC_BUTTON_MODIFY               1028
@@ -38,8 +38,8 @@
 #define IDC_STATIC_BOARDCONNECT         1031
 #define IDC_STATIC_BOARD_LED            1032
 #define IDC_EDIT_FREQUENCE              1033
-#define IDC_STATIC_FRAMESEND_STATE      1035
-#define IDC_STATIC_FRAMESEND_LED        1036
+//#define IDC_STATIC_FRAMESEND_STATE      1035
+//#define IDC_STATIC_FRAMESEND_LED        1036
 #define IDC_EDIT_BOARD_FREQUENCY        1037
 #define IDC_BUTTON_SYS_STOP             1038
 #define IDC_BUTTON_                     1038

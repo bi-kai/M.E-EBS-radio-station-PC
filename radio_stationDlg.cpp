@@ -4,6 +4,8 @@
 Timer1:频谱扫描按钮，使能控制
 Timer2:子板通过串口连接后，定期间隔查询子板
 Timer3:Timer2发送查询帧，统计接收的间隔时间
+
+Timer4:广播语音前，先发送唤醒帧，然后间隔1秒后再广播语音
 *******************************************************************************/
 
 #include "stdafx.h"
@@ -104,7 +106,6 @@ CRadio_stationDlg::CRadio_stationDlg(CWnd* pParent /*=NULL*/)
 	m_unicast_terminal_id = 0.0;
 	m_multi_terminal_id_start = 0.0;
 	m_multi_terminal_id_end = 0.0;
-	m_frame_counter = 0;
 	//}}AFX_DATA_INIT
 	// Note that LoadIcon does not require a subsequent DestroyIcon in Win32
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
@@ -114,7 +115,6 @@ void CRadio_stationDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CRadio_stationDlg)
-	DDX_Control(pDX, IDC_STATIC_FRAMESEND_LED, m_frame_send_state);
 	DDX_Control(pDX, IDC_LIST1, m_rssi_list);
 	DDX_Control(pDX, IDC_COMBO_ALARM_TYPE, m_alarm_command);
 	DDX_Control(pDX, IDC_STATIC_BOARDCONNECT, m_board_connect);
@@ -134,7 +134,6 @@ void CRadio_stationDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_UNICAST, m_unicast_terminal_id);
 	DDX_Text(pDX, IDC_EDIT_MULTICAST_START, m_multi_terminal_id_start);
 	DDX_Text(pDX, IDC_EDIT_MULTICAST_END, m_multi_terminal_id_end);
-	DDX_Text(pDX, IDC_EDIT_FRAME_COUNTER, m_frame_counter);
 	//}}AFX_DATA_MAP
 }
 
@@ -175,6 +174,7 @@ BEGIN_MESSAGE_MAP(CRadio_stationDlg, CDialog)
 	ON_BN_CLICKED(IDC_BUTTON_BOARD_RST, OnButtonBoardReset)
 	ON_BN_CLICKED(IDC_BUTTON_TTS, OnButtonTTS)
 	ON_BN_CLICKED(IDC_BUTTON_NMIC, OnButtonNMIC)
+	ON_BN_CLICKED(IDC_BUTTON_ADVANCED, OnButtonAdvanced)
 	//}}AFX_MSG_MAP
 	ON_MESSAGE(WM_SHOWTASK,OnShowTask)
 END_MESSAGE_MAP()
@@ -249,7 +249,8 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	flag_voice_broad=0;
 	voice_broad=0;
 	flag_fre_is_scaning=0;
-//	m_frame_counter=0;//帧计数器
+	m_frame_counter=0;//帧计数器
+	flag_button_advanced=0;//“高级”按钮，默认弹起
 
 	GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_ID)->EnableWindow(FALSE);
@@ -282,6 +283,13 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	}
 	else
 		 MessageBox("can not open serial port");
+
+/****************************缩短界面**********************************/
+	flag_button_advanced=0;
+	CRect rect1;
+	GetWindowRect(rect1);
+	rect1.bottom -= 210;
+	MoveWindow(rect1);
 /****************************状态栏**************************************/
 	m_StatBar=new CStatusBarCtrl;//状态栏
 	RECT m_Rect; 
@@ -298,7 +306,8 @@ BOOL CRadio_stationDlg::OnInitDialog()
 										其他操作：m_StatBar->SetIcon(3,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON3),FALSE));
 										//在第四个分栏中加入ID为IDI_ICON3的图标*/
 //	m_StatBar->SetIcon(2,SetIcon(AfxGetApp()->LoadIcon(IDI_ICON_OFF),FALSE));
-	m_StatBar->ShowWindow(SW_SHOW); 
+	m_StatBar->ShowWindow(SW_SHOW);
+
 /**************************INI配置*******************************/
 	CFileFind finder;   //查找是否存在ini文件，若不存在，则生成一个新的默认设置的ini文件，这样就保证了我们更改后的设置每次都可用
 	BOOL ifFind = finder.FindFile(_T(".\\config_radiostation.ini"));
@@ -463,7 +472,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 // 		//::AfxMessageBox("没找到执行程序，自动运行失败");  
 // 		//exit(0);  
 // 	}  
-
+	
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -557,9 +566,9 @@ void CRadio_stationDlg::OnButtonWakeup()
 	KillTimer(2);//终端准备连续发送多秒的唤醒帧，此时不检测板卡的连接
 	KillTimer(3);//关闭超时次数统计
 	OnTimer(1);
-	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("唤醒帧未发送");
+	m_StatBar->SetText("软件及板卡状态：唤醒帧未发送",1,0);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
-	m_frame_send_state.SetIcon(m_hIconOff);
+//	m_frame_send_state.SetIcon(m_hIconOff);
 	
 	int k=0;
 	int i=0;
@@ -1131,7 +1140,7 @@ void CRadio_stationDlg::OnComm1()
 		strTmp.Format("%d",frame_receive[9]);
 		m_rssi_list.SetItemText(frame_receive[7],2,strTmp);//设置数据
 		m_rssi_list.SendMessage(WM_VSCROLL,SB_BOTTOM,NULL); //随数据滚动
-		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("数据接收...");
+		m_StatBar->SetText("软件及板卡状态：数据接收...",1,0);
 
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='c')&&(frame_receive[2]=='o')&&(frame_receive[3]=='n')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[8]==XOR(frame_receive,8)))//控制帧
@@ -1155,25 +1164,25 @@ void CRadio_stationDlg::OnComm1()
 	{
 		switch (index_resent_data_frame)
 		{
-		case 1://广播唤醒帧
-			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("广播帧已发送"); 
-			m_frame_send_state.SetIcon(m_hIconRed);
+		case 1://广播唤醒帧 
+			m_StatBar->SetText("软件及板卡状态：广播帧已发送",1,0);
+//			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		case 2://单播唤醒帧
-			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("单播帧已发送");
-			m_frame_send_state.SetIcon(m_hIconRed);
+			m_StatBar->SetText("软件及板卡状态：单播帧已发送",1,0);
+//			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		case 3://组播唤醒帧
-			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("组播帧已发送"); 
-			m_frame_send_state.SetIcon(m_hIconRed);
+			m_StatBar->SetText("软件及板卡状态：组播帧已发送",1,0);
+//			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		case 4://控制指令帧
-			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("控制帧已发送");
-			m_frame_send_state.SetIcon(m_hIconRed);
+			m_StatBar->SetText("软件及板卡状态：控制帧已发送",1,0);
+//			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		case 5://认证帧
-			GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("认证帧已发送");
-			m_frame_send_state.SetIcon(m_hIconRed);
+			m_StatBar->SetText("软件及板卡状态：认证帧已发送",1,0);
+//			m_frame_send_state.SetIcon(m_hIconRed);
 			break;
 		}
 		
@@ -1194,12 +1203,12 @@ void CRadio_stationDlg::OnComm1()
 			OnButtonWakeup(); 
 			break;
 		case 4://控制指令帧
-			OnButtonAlarm();
+			OnButtonAlarm(0);
 			break;
 		case 5://认证帧
 			break;
 		}
-		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("子板请求重传"); 
+		m_StatBar->SetText("软件及板卡状态：子板请求重传",1,0);
 	} 
 	else
 	{
@@ -1575,13 +1584,13 @@ void CRadio_stationDlg::OnSelendokComboAlarmType()
 	
 }
 
-void CRadio_stationDlg::OnButtonAlarm() 
+void CRadio_stationDlg::OnButtonAlarm(int con) 
 {
 	// TODO: Add your control notification handler code here
 	OnTimer(1);
-	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("控制帧未发送");
+	m_StatBar->SetText("软件及板卡状态：控制帧未发送",1,0);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
-	m_frame_send_state.SetIcon(m_hIconOff);
+//	m_frame_send_state.SetIcon(m_hIconOff);
 	
 
 	int k=0;
@@ -1596,7 +1605,10 @@ void CRadio_stationDlg::OnButtonAlarm()
 	
 	frame_type[0]=1;//帧类型：控制帧10
 	frame_type[1]=0;
-
+	if (con>0)//标志指定的控制。如：100：广播完毕；
+	{
+		alarm_index=con;
+	}
 	int_bits(alarm_index,control_region,10);
 	
 	i=(int)m_frame_counter;
@@ -1739,7 +1751,7 @@ void CRadio_stationDlg::OnButtonScan()
 {
 	// TODO: Add your control notification handler code here
 	KillTimer(2);
-	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("开始扫描频谱");
+	m_StatBar->SetText("软件及板卡状态：开始扫描频谱",1,0);
 	GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
 	flag_fre_is_scaning=1;//标志开始扫描频谱
 	int nRows=0,nIndex=0,i=0;
@@ -1815,8 +1827,8 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 	{
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->EnableWindow(TRUE);
-		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("频谱扫描完成");
-		m_frame_send_state.SetIcon(m_hIconRed);
+		m_StatBar->SetText("软件及板卡状态：频谱扫描完成",1,0);
+//		m_frame_send_state.SetIcon(m_hIconRed);
 		flag_fre_is_scaning=0;//标志停止扫描频谱
 		KillTimer(1);
 		SetTimer(2,TIMER2_MS,NULL);//只有在子板连接上后并且没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接
@@ -1878,8 +1890,53 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 			GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
 			GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(FALSE);
 			GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(FALSE);
+
+			flag_voice_broad=0;//子板链接断开后，将语音广播按钮变为初始化状态
+			GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
 		}
 		KillTimer(3);
+	}
+	else if(nIDEvent==4){//广播语音，使用先开始说话，再发送唤醒帧的机制，因为发送唤醒帧时，终端是不能被中断的，也就是接收不了广播控制帧
+		OnButtonWakeup();//先执行一次唤醒，这样方便用户操作，不用点击唤醒按钮了。此外，可以打断正在扫描频谱的动作（如果在扫描的话）。
+		KillTimer(4);//此处先关闭定时器，之后要做定时发送认证帧
+	}
+	else if(nIDEvent==5){
+		if (index_control_times<200)
+		{
+			index_control_times++;
+			if ((index_control_times==0x0d)||(index_control_times==0x24))
+			{
+				index_control_times++;
+			}
+		} 
+		else
+		{
+			index_control_times=0;
+		}
+		frame_board_control[5]=index_control_times;
+		frame_board_control[6]=voice_broad;	
+		frame_board_control[7]=0;//用0填充，保持帧结构的一致性
+		frame_board_control[8]=XOR(frame_board_control,8);
+		if ((frame_board_control[8]=='$')||(frame_board_control[8]==0x0d))
+		{
+			frame_board_control[8]++;//如果异或结果是$或0x0d，则值加一
+		}
+		frame_board_control[9]='\r';
+		frame_board_control[10]='\n';
+		CByteArray Array;
+		Array.RemoveAll();
+		Array.SetSize(9+2);
+		
+		for (int i=0;i<(9+2);i++)
+		{
+			Array.SetAt(i,frame_board_control[i]);
+		}
+		
+		if(m_comm.GetPortOpen())
+		{
+			m_comm.SetOutput(COleVariant(Array));//发送数据
+		}
+		KillTimer(5);
 	}
 
 	CDialog::OnTimer(nIDEvent);
@@ -1968,57 +2025,68 @@ void CRadio_stationDlg::OnDestroy()//选择退出时，托盘区删除图标
 void CRadio_stationDlg::OnButtonVoice() 
 {
 	// TODO: Add your control notification handler code here
-//	OnButtonWakeup();//先执行一次唤醒，这样方便用户操作，不用点击唤醒按钮了。此外，可以打断正在扫描频谱的动作（如果在扫描的话）。
 	
 	if ((flag_voice_broad==0)&&(flag_fre_is_scaning==0))
 	{
 		flag_voice_broad=1;
-		voice_broad=3;
+		voice_broad=3;//打开广播
 		GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("停止广播");
+
+		if (index_control_times<200)
+		{
+			index_control_times++;
+			if ((index_control_times==0x0d)||(index_control_times==0x24))
+			{
+				index_control_times++;
+			}
+		} 
+		else
+		{
+			index_control_times=0;
+		}
+		frame_board_control[5]=index_control_times;
+		frame_board_control[6]=voice_broad;	
+		frame_board_control[7]=0;//用0填充，保持帧结构的一致性
+		frame_board_control[8]=XOR(frame_board_control,8);
+		if ((frame_board_control[8]=='$')||(frame_board_control[8]==0x0d))
+		{
+			frame_board_control[8]++;//如果异或结果是$或0x0d，则值加一
+		}
+		frame_board_control[9]='\r';
+		frame_board_control[10]='\n';
+		CByteArray Array;
+		Array.RemoveAll();
+		Array.SetSize(9+2);
+		
+		for (int i=0;i<(9+2);i++)
+		{
+			Array.SetAt(i,frame_board_control[i]);
+		}
+		
+		if(m_comm.GetPortOpen())
+		{
+			m_comm.SetOutput(COleVariant(Array));//发送数据
+		}
+		SetTimer(4,500,NULL);//500ms后使能,留点时间给子板发反馈帧
 	} 
 	else if((flag_voice_broad==1)&&(flag_fre_is_scaning==0))
 	{
 		flag_voice_broad=0;
-		voice_broad=4;
+		voice_broad=4;//关闭广播
 		GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
+		OnButtonAlarm(100);//关闭广播时，先发送三次控制帧，通知终端通话结束
+		Sleep(450);
+		OnButtonAlarm(100);
+		Sleep(450);
+		OnButtonAlarm(100);
+		SetTimer(5,500,NULL);//定时器中通知下位机停止广播。500ms后使能,留点时间给子板发反馈帧
 	}
 	flag_fre_is_scaning=0;//标志停止扫描频谱
 
-	if (index_control_times<200)
-	{
-		index_control_times++;
-		if ((index_control_times==0x0d)||(index_control_times==0x24))
-		{
-			index_control_times++;
-		}
-	} 
-	else
-	{
-		index_control_times=0;
-	}
-	frame_board_control[5]=index_control_times;
-	frame_board_control[6]=voice_broad;	
-	frame_board_control[7]=0;//用0填充，保持帧结构的一致性
-	frame_board_control[8]=XOR(frame_board_control,8);
-	if ((frame_board_control[8]=='$')||(frame_board_control[8]==0x0d))
-	{
-		frame_board_control[8]++;//如果异或结果是$或0x0d，则值加一
-	}
-	frame_board_control[9]='\r';
-	frame_board_control[10]='\n';
-	CByteArray Array;
-	Array.RemoveAll();
-	Array.SetSize(9+2);
 	
-	for (int i=0;i<(9+2);i++)
-	{
-		Array.SetAt(i,frame_board_control[i]);
-	}
-	
-	if(m_comm.GetPortOpen())
-	{
-		m_comm.SetOutput(COleVariant(Array));//发送数据
-	}
+
+//	if(flag_voice_broad==1)//开始广播时，才发送唤醒
+		
 }
 
 void CRadio_stationDlg::OnButtonIdentify() 
@@ -2027,9 +2095,9 @@ void CRadio_stationDlg::OnButtonIdentify()
 	KillTimer(2);//终端准备连续发送多秒的唤醒帧，此时不检测板卡的连接
 	KillTimer(3);//关闭超时次数统计
 	OnTimer(1);
-	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("认证帧未发送");
+	m_StatBar->SetText("软件及板卡状态：认证帧未发送",1,0);
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
-	m_frame_send_state.SetIcon(m_hIconOff);
+//	m_frame_send_state.SetIcon(m_hIconOff);
 
 	srand((unsigned)time(NULL));
 	int rand_bits=1+rand()%1020;
@@ -2154,4 +2222,27 @@ void CRadio_stationDlg::OnButtonNMIC()
 {
 	// TODO: Add your control notification handler code here
 	GetDlgItem(IDC_BUTTON_NMIC)->SetWindowText("停止非MIC语音接入广播");
+}
+
+void CRadio_stationDlg::OnButtonAdvanced() 
+{
+	// TODO: Add your control notification handler code here
+	if (flag_button_advanced==0)//按下了
+	{
+		flag_button_advanced=1;
+		CRect rect1;
+		GetWindowRect(rect1);
+		rect1.bottom += 190;
+		MoveWindow(rect1);
+
+	} 
+	else
+	{
+		flag_button_advanced=0;
+		CRect rect1;
+		GetWindowRect(rect1);
+		rect1.bottom -= 190;
+		MoveWindow(rect1);
+
+	}
 }

@@ -26,7 +26,6 @@ public:
 // Dialog Data
 	//{{AFX_DATA(CRadio_stationDlg)
 	enum { IDD = IDD_RADIO_STATION_DIALOG };
-	CStatic	m_frame_send_state;
 	CListCtrl	m_rssi_list;
 	CComboBox	m_alarm_command;
 	CStatic	m_board_connect;
@@ -46,7 +45,6 @@ public:
 	double	m_unicast_terminal_id;
 	double	m_multi_terminal_id_start;
 	double	m_multi_terminal_id_end;
-	int		m_frame_counter;
 	//}}AFX_DATA
 
 	// ClassWizard generated virtual function overrides
@@ -87,7 +85,7 @@ protected:
 	afx_msg void OnKillfocusEditMulticastStart();
 	afx_msg void OnKillfocusEditMulticastEnd();
 	afx_msg void OnSelendokComboAlarmType();
-	afx_msg void OnButtonAlarm();
+	afx_msg void OnButtonAlarm(int con);
 	afx_msg void OnKillfocusEditBoardFrequency();
 	afx_msg void OnButtonScan();
 	afx_msg void OnTimer(UINT nIDEvent);
@@ -98,6 +96,7 @@ protected:
 	afx_msg void OnButtonBoardReset();
 	afx_msg void OnButtonTTS();
 	afx_msg void OnButtonNMIC();
+	afx_msg void OnButtonAdvanced();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -120,7 +119,7 @@ public:
 	unsigned char frame_counter[36];//帧计数器
 	unsigned char MAC_AES[36];//AES后缀
 
-//	int	m_frame_counter;//帧计数器
+	int	m_frame_counter;//帧计数器
 	
 //	unsigned char
 
@@ -152,6 +151,8 @@ private:
 	CStatusBarCtrl *m_StatBar;//状态栏
 	bool flag_voice_broad;//软件界面上开始广播停止广播文字切换标志位
 	int voice_broad;//语音广播标志位3：开始广播；4：停止广播；
+
+	bool flag_button_advanced;//“高级”按钮。1：按下；0：弹起；
 
 };
 

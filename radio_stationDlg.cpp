@@ -1227,7 +1227,8 @@ void CRadio_stationDlg::OnComm1()
 			OnButtonWakeup(); 
 			break;
 		case 4://控制指令帧
-			OnButtonAlarm(0);
+			terminal_control_index=0;
+			OnButtonAlarm();
 			break;
 		case 5://认证帧
 			break;
@@ -1608,7 +1609,7 @@ void CRadio_stationDlg::OnSelendokComboAlarmType()
 	
 }
 
-void CRadio_stationDlg::OnButtonAlarm(int con) 
+void CRadio_stationDlg::OnButtonAlarm() 
 {
 	// TODO: Add your control notification handler code here
 	OnTimer(1);
@@ -1629,9 +1630,9 @@ void CRadio_stationDlg::OnButtonAlarm(int con)
 	
 	frame_type[0]=1;//帧类型：控制帧10
 	frame_type[1]=0;
-	if ((con>0)&&(con<1024))//标志指定的控制。如：100：广播完毕；
+	if ((terminal_control_index>0)&&(terminal_control_index<1024))//标志指定的控制。如：100：广播完毕；
 	{
-		alarm_index=con;
+		alarm_index=terminal_control_index;
 	}else{
 		OnSelendokComboAlarmType();//如果不是一些特殊控制指令，如100，则重新获取下拉框中的选项的索引号
 	}
@@ -2100,11 +2101,12 @@ void CRadio_stationDlg::OnButtonVoice()
 		flag_voice_broad=0;
 		voice_broad=4;//关闭广播
 		GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
-		OnButtonAlarm(100);//关闭广播时，先发送三次控制帧，通知终端通话结束
+		terminal_control_index=100;
+		OnButtonAlarm();//关闭广播时，先发送三次控制帧，通知终端通话结束
 		Sleep(450);
-		OnButtonAlarm(100);
+		OnButtonAlarm();
 		Sleep(450);
-		OnButtonAlarm(100);
+		OnButtonAlarm();
 		SetTimer(5,500,NULL);//定时器中通知下位机停止广播。500ms后使能,留点时间给子板发反馈帧
 	}
 	flag_fre_is_scaning=0;//标志停止扫描频谱

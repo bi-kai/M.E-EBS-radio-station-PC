@@ -87,7 +87,7 @@ protected:
 	afx_msg void OnKillfocusEditMulticastStart();
 	afx_msg void OnKillfocusEditMulticastEnd();
 	afx_msg void OnSelendokComboAlarmType();
-	afx_msg void OnButtonAlarm(int con);
+	afx_msg void OnButtonAlarm();
 	afx_msg void OnKillfocusEditBoardFrequency();
 	afx_msg void OnButtonScan();
 	afx_msg void OnTimer(UINT nIDEvent);
@@ -125,6 +125,7 @@ public:
 	unsigned char MAC_AES[36];//AES后缀
 
 	int	m_frame_counter;//帧计数器
+	int terminal_control_index;//发送给终端的控制索引
 	
 //	unsigned char
 

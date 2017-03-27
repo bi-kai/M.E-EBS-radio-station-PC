@@ -103,6 +103,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
+	bool flag_fre_is_scaning;//正在扫描频谱
 	int timer_board_disconnect_times;//定时器3统计尝试连接次数，达到3次则判断子板未连接
 //	LRESULT OnShowTask( WPARAM wParam,LPARAM lParam );
 	void ToTray();

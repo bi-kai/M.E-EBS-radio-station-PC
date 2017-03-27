@@ -98,7 +98,7 @@ STYLE DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION |
     WS_SYSMENU
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "应急广播系统主控平台"
-FONT 9, "宋体"
+FONT 9, "宋体", 0, 0, 0x1
 BEGIN
     CONTROL         "广播",IDC_RADIO_BROADCAST,"Button",BS_AUTORADIOBUTTON | 
                     WS_GROUP,127,30,32,10,0,HIDC_RADIO_BROADCAST
@@ -399,6 +399,13 @@ BEGIN
     0
 END
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Cursor
+//
+
+IDC_CURSOR1             CURSOR  DISCARDABLE     "res\\cursor1.cur"
 
 /////////////////////////////////////////////////////////////////////////////
 //

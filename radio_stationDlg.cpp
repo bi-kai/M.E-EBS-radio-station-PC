@@ -1,5 +1,10 @@
 // radio_stationDlg.cpp : implementation file
 //
+/*******************************************************************************
+Timer1:频谱扫描按钮，使能控制
+Timer2:子板通过串口连接后，定期间隔查询子板
+Timer3:Timer2发送查询帧，统计接收的间隔时间
+*******************************************************************************/
 
 #include "stdafx.h"
 #include "radio_station.h"
@@ -25,6 +30,8 @@ static char THIS_FILE[] = __FILE__;
 
 #define FREQUENCY_TERMINAL_START 76.0//终端通信频点最小值
 #define FREQUENCY_TERMINAL_END 108.0//终端通信频点最大值
+
+#define TIMER2_MS 30000//定时器2中断间隔，30s查询一次子板的连接状况
 
 unsigned char frame_board_check[7+2]={'$','r','d','y','_'};//连接检测帧
 unsigned char frame_board_frequency[7+2]={'$','f','r','e','_'};//频谱检测帧
@@ -241,6 +248,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 // 	m_Parity.SetCurSel(0);
 	flag_voice_broad=0;
 	voice_broad=0;
+	flag_fre_is_scaning=0;
 
 	GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_ID)->EnableWindow(FALSE);
@@ -543,7 +551,8 @@ void CRadio_stationDlg::OnRadioUnicase()
 void CRadio_stationDlg::OnButtonWakeup() 
 {
 	// TODO: Add your control notification handler code here//
-	KillTimer(1);
+	KillTimer(2);//终端准备连续发送多秒的唤醒帧，此时不检测板卡的连接
+	KillTimer(3);//关闭超时次数统计
 	OnTimer(1);
 	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("唤醒帧未发送");
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
@@ -743,7 +752,7 @@ void CRadio_stationDlg::OnButtonWakeup()
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
 	}
-
+	SetTimer(2,(TIMER2_MS+m_wakeup_time),NULL);//打开定时器，允许查询子板的链接
 }
 //frame_board_bits
 void CRadio_stationDlg::OnSelendokComboComselect() 
@@ -1008,7 +1017,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 			{
 				m_comm.SetOutput(COleVariant(Array));//发送数据
 			}
-			SetTimer(2,10000,NULL);//只有在子板连接上后并且没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接
+			SetTimer(2,TIMER2_MS,NULL);//只有在子板连接上后并且没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接
 		}
 		else
 			MessageBox("无法打开串口，请重试！");	 
@@ -1562,7 +1571,6 @@ void CRadio_stationDlg::OnSelendokComboAlarmType()
 void CRadio_stationDlg::OnButtonAlarm() 
 {
 	// TODO: Add your control notification handler code here
-//	KillTimer(1);
 	OnTimer(1);
 	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("控制帧未发送");
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
@@ -1723,6 +1731,8 @@ void CRadio_stationDlg::OnButtonScan()
 	// TODO: Add your control notification handler code here
 	KillTimer(2);
 	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("开始扫描频谱");
+	GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
+	flag_fre_is_scaning=1;//标志开始扫描频谱
 	int nRows=0,nIndex=0,i=0;
 	m_rssi_list.DeleteAllItems();
 
@@ -1798,11 +1808,13 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 		GetDlgItem(IDC_BUTTON_BOARD_MODIFY)->EnableWindow(TRUE);
 		GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("频谱扫描完成");
 		m_frame_send_state.SetIcon(m_hIconRed);
+		flag_fre_is_scaning=0;//标志停止扫描频谱
 		KillTimer(1);
-		SetTimer(2,10000,NULL);//只有在子板连接上后并且没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接
+		SetTimer(2,TIMER2_MS,NULL);//只有在子板连接上后并且没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接
 	} 
 	else if(nIDEvent==2)
 	{
+		SetTimer(2,TIMER2_MS,NULL);//把定时器2的中断时间重新设置一下
 		if (index_wakeup_times<200)
 		{
 			index_wakeup_times++;
@@ -1905,7 +1917,7 @@ LRESULT CRadio_stationDlg::OnShowTask(WPARAM wParam, LPARAM lParam)
 		break; 
 	case WM_LBUTTONDBLCLK://双击左键的处理 
         { 
-//			SetTimer(2,1000,NULL);
+//			SetTimer(2,TIMER2_MS,NULL);
             this->ShowWindow(SW_SHOW);//简单的显示主窗口完事儿
 			//			this->SetForegroundWindow();         //置顶显示
 			
@@ -1947,18 +1959,21 @@ void CRadio_stationDlg::OnDestroy()//选择退出时，托盘区删除图标
 void CRadio_stationDlg::OnButtonVoice() 
 {
 	// TODO: Add your control notification handler code here
-	if (flag_voice_broad==0)
+//	OnButtonWakeup();//先执行一次唤醒，这样方便用户操作，不用点击唤醒按钮了。此外，可以打断正在扫描频谱的动作（如果在扫描的话）。
+	
+	if ((flag_voice_broad==0)&&(flag_fre_is_scaning==0))
 	{
 		flag_voice_broad=1;
 		voice_broad=3;
 		GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("停止广播");
 	} 
-	else
+	else if((flag_voice_broad==1)&&(flag_fre_is_scaning==0))
 	{
 		flag_voice_broad=0;
 		voice_broad=4;
 		GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
 	}
+	flag_fre_is_scaning=0;//标志停止扫描频谱
 
 	if (index_control_times<200)
 	{
@@ -2000,7 +2015,8 @@ void CRadio_stationDlg::OnButtonVoice()
 void CRadio_stationDlg::OnButtonIdentify() 
 {
 	// TODO: Add your control notification handler code here
-//	KillTimer(1);
+	KillTimer(2);//终端准备连续发送多秒的唤醒帧，此时不检测板卡的连接
+	KillTimer(3);//关闭超时次数统计
 	OnTimer(1);
 	GetDlgItem(IDC_STATIC_FRAMESEND_STATE)->SetWindowText("认证帧未发送");
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
@@ -2106,7 +2122,7 @@ void CRadio_stationDlg::OnButtonIdentify()
 		::WritePrivateProfileString("ConfigInfo","frame_counter",strTemp,".\\config_radiostation.ini");
 		UpdateData(FALSE);//将帧值反应到界面上
 	}
-
+	SetTimer(2,TIMER2_MS,NULL);//打开定时器，允许查询子板的链接
 
 }
 

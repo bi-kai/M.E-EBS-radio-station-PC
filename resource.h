@@ -10,6 +10,7 @@
 #define IDI_ICON1                       130
 #define IDI_ICON_OFF                    131
 #define IDI_ICON_RED                    132
+#define IDC_CURSOR1                     133
 #define IDC_MSCOMM1                     1000
 #define IDC_RADIO_BROADCAST             1001
 #define IDC_RADIO_MULTICAST             1002
@@ -58,7 +59,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        133
+#define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1047
 #define _APS_NEXT_SYMED_VALUE           101

@@ -6,7 +6,7 @@
 --------------------Configuration: radio_station - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Users\idol\AppData\Local\Temp\RSPA6EB.tmp" with contents
+Creating temporary file "C:\Users\idol\AppData\Local\Temp\RSPA97A.tmp" with contents
 [
 /nologo /subsystem:windows /incremental:yes /pdb:"Debug/radio_station.pdb" /debug /machine:I386 /out:"Debug/radio_station.exe" /pdbtype:sept 
 ".\Debug\encrypt.obj"
@@ -16,7 +16,7 @@ Creating temporary file "C:\Users\idol\AppData\Local\Temp\RSPA6EB.tmp" with cont
 ".\Debug\StdAfx.obj"
 ".\Debug\radio_station.res"
 ]
-Creating command line "link.exe @C:\Users\idol\AppData\Local\Temp\RSPA6EB.tmp"
+Creating command line "link.exe @C:\Users\idol\AppData\Local\Temp\RSPA97A.tmp"
 <h3>Output Window</h3>
 Linking...
 Creating command line "bscmake.exe /nologo /o"Debug/radio_station.bsc"  ".\Debug\StdAfx.sbr" ".\Debug\encrypt.sbr" ".\Debug\mscomm.sbr" ".\Debug\radio_station.sbr" ".\Debug\radio_stationDlg.sbr""

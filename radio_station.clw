@@ -30,7 +30,7 @@ ImplementationFile=radio_stationDlg.cpp
 Filter=D
 BaseClass=CDialog
 VirtualFilter=dWC
-LastObject=IDC_EDIT_MULTICAST_START
+LastObject=CRadio_stationDlg
 
 [CLS:CAboutDlg]
 Type=0

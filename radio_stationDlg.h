@@ -86,13 +86,16 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
+	void four_bits_ASCII(unsigned char* a,unsigned char* b,int len,int index);
+	void int_bits(int a, unsigned char* b, int len);
 	unsigned char XOR(unsigned char *BUFF, int len);
 	unsigned char frame_type[2];//帧类型:01表示本帧是唤醒帧、10代表控制帧、11代表认证数据帧、00代表认证续传帧
 	unsigned char wakeup_type[2];//唤醒帧类型:单播01、广播10、组播11
 	unsigned char communication_fre_point[8];//通信频点：本标志位的值表示对87MHz以100KHz为单位的偏移量
 	unsigned char source_address[36];//源地址：电台的ID，电台的电话卡转换的二进制串，由于存在跨区用户也要收听应急信息，所以该标志位作为中端的一个参考
 	unsigned char target_address_unicast[24];//单播目标地址
-	unsigned char target_address_multicast[48];//多播目标地址
+	unsigned char target_address_multicast_start[24];//多播目标起始地址
+	unsigned char target_address_multicast_end[24];//多播目标终止地址
 	unsigned char frame_counter[36];//帧计数器
 	unsigned char MAC_AES[36];//AES后缀
 	
@@ -109,7 +112,14 @@ private:
 	bool flag_modified;//修改唤醒帧字段标志位
 	bool flag_com_init_ack;//上位机软件查询下位机，下位机对查询信息的应答标志位
 	int frame_index;//接收缓冲帧的索引
-	unsigned char index_wakeup_times;//唤醒次数计数器
+	int frame_send_index;//发送缓冲区无线帧比特流计数器
+	int frame_board_send_index;//子板通信数据帧计数器
+//	int index_before_gray;//格雷编码前数组索引
+	int index_after_gray;//格雷编码后数组索引
+	unsigned char index_wakeup_times;//连接帧发送次数计数器，上下位机通信，保证每帧数据都不同
+	unsigned char index_scan_times;//频谱扫描帧发送次数计数器，上下位机通信，保证每帧数据都不同
+	unsigned char index_control_times;//控制帧发送次数计数器，上下位机通信，保证每帧数据都不同
+	unsigned char index_data_times;//数据帧发送次数计数器，上下位机通信，保证每帧数据都不同
 	bool flag_board_modified;//修改下位机配置标志位
 
 };

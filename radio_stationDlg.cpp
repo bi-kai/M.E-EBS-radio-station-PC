@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "radio_station.h"
 #include "radio_stationDlg.h"
+#include "encrypt.h"
 #include <math.h> 
 
 #ifdef _DEBUG
@@ -12,18 +13,25 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-
-#define SENDBUFFERSIZE 1100
-#define RECEIVEBUFFERSIZE 100
 #define RADIO_ID_START 34095233
 #define RADIO_ID_END 1073741823
 #define AREA_TERMINAL_ID_START 4353
 #define AREA_TERMINAL_ID_END 262143
+
+#define FREQUENCY_TERMINAL_START 76.0//终端通信频点最小值
+#define FREQUENCY_TERMINAL_END 88.0//终端通信频点最大值
+
 unsigned char frame_board_check[7]={'$','r','d','y','_'};//连接检测帧
 unsigned char frame_board_frequency[7]={'$','f','r','e','_'};//频谱检测帧
 unsigned char frame_board_control[7]={'$','c','o','n','_'};//控制帧
-unsigned char frame_board_data[SENDBUFFERSIZE]={'$','d','a','t','_'};//数据帧
-unsigned char frame_receive[RECEIVEBUFFERSIZE]={0};//接收缓冲区
+//unsigned char frame_board_before_gray[168]={0};//格雷编码前的数据帧的比特流
+unsigned char frame_board_after_gray[168*2]={0};//格雷编码后的数据帧的比特流
+unsigned char frame_board_data[400]={'$','d','a','t','_'};//发送数据帧
+unsigned char frame_board_bits[1100]={0};//电台终端帧冲区
+unsigned char frame_receive[100]={0};//接收缓冲区
+
+extern unsigned char cipherkey_base[16];//电台私钥
+
 /////////////////////////////////////////////////////////////////////////////
 // CAboutDlg dialog used for App About
 
@@ -184,9 +192,16 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	SerialPortOpenCloseFlag=FALSE;//默认关闭串口
 	flag_modified=0;//修改电台ID标志位
 	flag_com_init_ack=0;//未收到下位机的应答
-	frame_index=0;//接收缓冲帧初始化
-	index_wakeup_times=0;
+	frame_index=0;//接收缓冲帧计数器初始化
+	frame_send_index=0;//发送缓冲计数器初始化
+	index_wakeup_times=0;//连接帧发送次数计数器，上下位机通信，保证每帧数据都不同
+	index_scan_times=0;//频谱扫描帧发送次数计数器，上下位机通信，保证每帧数据都不同
+	index_control_times=0;//控制帧发送次数计数器，上下位机通信，保证每帧数据都不同
+	index_data_times=0;//数据帧发送次数计数器，上下位机通信，保证每帧数据都不同
 	flag_board_modified=0;//子板修改标志位
+	frame_board_send_index=5;//子板通信数据帧计数器，前五位被占用
+//	index_before_gray=0;
+	index_after_gray=0;
 
 	m_hIconRed  = AfxGetApp()->LoadIcon(IDI_ICON_RED);
 	m_hIconOff	= AfxGetApp()->LoadIcon(IDI_ICON_OFF);
@@ -334,6 +349,8 @@ void CRadio_stationDlg::OnRadioMulticast()
 	GetDlgItem(IDC_EDIT_UNICAST)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_MULTICAST_START)->EnableWindow(TRUE);
 	GetDlgItem(IDC_EDIT_MULTICAST_END)->EnableWindow(TRUE);
+	OnKillfocusEditMulticastStart();
+	OnKillfocusEditMulticastEnd();
 	UpdateData(FALSE);
 }
 
@@ -344,41 +361,165 @@ void CRadio_stationDlg::OnRadioUnicase()
 	GetDlgItem(IDC_EDIT_UNICAST)->EnableWindow(TRUE);
 	GetDlgItem(IDC_EDIT_MULTICAST_START)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_MULTICAST_END)->EnableWindow(FALSE);
+	OnKillfocusEditUnicast();
 	UpdateData(FALSE);
 }
 
 void CRadio_stationDlg::OnButtonWakeup() 
 {
-	// TODO: Add your control notification handler code here
-	if (m_radio_wakeup==0)
+	// TODO: Add your control notification handler code here//encode(input,output);
+	int k=0;
+	int i=0;
+	unsigned char char_buf[4][4]={0};//AES加密
+	unsigned char bits_buf[128]={0};//AES加密
+
+	frame_board_send_index=5;//子板通信数据帧计数器，前五位被占用
+	
+	frame_type[0]=0;//帧类型：唤醒帧01
+	frame_type[1]=1;
+
+	i=(int)((m_frequency-FREQUENCY_TERMINAL_START)*10);//频点获取，二进制化
+	int_bits(i,communication_fre_point,8);
+	
+	i=(int)m_radio_id;//电台ID
+	source_address[35]=0;
+	source_address[34]=0;
+	source_address[33]=0;
+	source_address[32]=0;
+	source_address[31]=0;
+	source_address[30]=0;
+	int_bits(i,source_address,30);
+	
+	i=(int)m_frame_counter;
+	frame_counter[35]=0;
+	frame_counter[34]=0;
+	frame_counter[33]=0;
+	frame_counter[32]=0;
+	int_bits(i,frame_counter,32);
+/*****************开始组帧********************************/
+	frame_board_bits[0]=frame_type[0];
+	frame_board_bits[1]=frame_type[1];
+	frame_send_index=4;//前面已经有了4个字节，从此开始++
+	for (k=0;k<8;k++)//通信频点
 	{
-		frame_type[0]=0;//唤醒帧01
-		frame_type[1]=1;
-		
+		frame_board_bits[frame_send_index]=communication_fre_point[k];
+		frame_send_index++;
+	}
+	for (k=0;k<36;k++)//源地址
+	{
+		frame_board_bits[frame_send_index]=source_address[k];
+		frame_send_index++;
+	}
+
+/*****************三种唤醒帧的不同，start*******************************/
+	if (m_radio_wakeup==0)//广播唤醒帧
+	{		
 		wakeup_type[0]=1;//单播01、广播10、组播11
 		wakeup_type[1]=0;
-
 	} 
-	else if(m_radio_wakeup==1)
+	else if(m_radio_wakeup==1)//单播唤醒帧
 	{
-		frame_type[0]=0;//唤醒帧01
-		frame_type[1]=1;
-		
 		wakeup_type[0]=0;//单播01、广播10、组播11
 		wakeup_type[1]=1;
 
+		i=(int)(m_unicast_terminal_id-m_radio_id*pow(2,18));//终端ID
+		int_bits(i,target_address_unicast,24);
+		for (k=0;k<24;k++)//转为比特流组帧
+		{
+			frame_board_bits[frame_send_index]=target_address_unicast[k];
+			frame_send_index++;
+		}
 	}
-	else if (m_radio_wakeup==2)
-	{
-		frame_type[0]=0;//唤醒帧01
-		frame_type[1]=1;
-		
+	else if (m_radio_wakeup==2)//组播唤醒帧
+	{		
 		wakeup_type[0]=1;//单播01、广播10、组播11
 		wakeup_type[1]=1;
 
-	}
-}
+		i=(int)(m_multi_terminal_id_start-m_radio_id*pow(2,18));//终端起始ID
+		int_bits(i,target_address_multicast_start,24);
+		for (k=0;k<24;k++)//转为比特流组帧
+		{
+			frame_board_bits[frame_send_index]=target_address_multicast_start[k];
+			frame_send_index++;
+		}
 
+		i=(int)(m_multi_terminal_id_end-m_radio_id*pow(2,18));//终端终止ID
+		int_bits(i,target_address_multicast_end,24);
+		for (k=0;k<24;k++)//转为比特流组帧
+		{
+			frame_board_bits[frame_send_index]=target_address_multicast_end[k];
+			frame_send_index++;
+		}
+	}
+/*****************三种唤醒帧的不同，end*********************************/
+
+	frame_board_bits[2]=wakeup_type[0];
+	frame_board_bits[3]=wakeup_type[1];
+	for (k=0;k<36;k++)//帧计数器
+	{
+		frame_board_bits[frame_send_index]=frame_counter[k];
+		frame_send_index++;
+	}
+	
+	/*****************AES加密********************************/
+	for(i=0;i<128;i++){
+		if(i<frame_send_index){//把格雷译码后的数据中后36位前的内容放到aes_bits[]中
+			bits_buf[i]=frame_board_bits[i];
+		}else{
+			bits_buf[i]=0;//不够128位则补零，超过128，则此处不执行，仅取前128位
+		}
+	}
+	bit_char(bits_buf,char_buf);
+	Encrypt(char_buf,cipherkey_base);
+	char_bit(char_buf,bits_buf);
+	for (k=0;k<36;k++)//AES串
+	{
+		frame_board_bits[frame_send_index]=bits_buf[k];
+		frame_send_index++;
+	}
+
+	CString str1;
+	str1.Format("%d",frame_send_index);
+	AfxMessageBox(str1,MB_OK,0);
+	/******************串口发送数据*******************************/
+	if (index_data_times<200)
+	{
+		index_data_times++;
+	} 
+	else
+	{
+		index_data_times=0;
+	}
+	frame_board_data[frame_board_send_index]=index_data_times;
+	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]=(frame_send_index/4)/256;
+	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]=(frame_send_index/4)%256;
+	frame_board_send_index++;
+	four_bits_ASCII(frame_board_bits,frame_board_data,frame_send_index,frame_board_send_index);
+	frame_board_send_index+=frame_send_index/4;
+	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
+	frame_board_send_index++;
+	if (frame_board_data[frame_board_send_index]=='$')
+	{
+		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
+	}
+	CByteArray Array;
+	Array.RemoveAll();
+	Array.SetSize(frame_board_send_index);
+	
+	for (i=0;i<frame_board_send_index;i++)
+	{
+		Array.SetAt(i,frame_board_data[i]);
+	}
+	
+	if(m_comm.GetPortOpen())
+	{
+		m_comm.SetOutput(COleVariant(Array));//发送数据
+	}	
+
+}
+//frame_board_bits
 void CRadio_stationDlg::OnSelendokComboComselect() 
 {
 	// TODO: Add your control notification handler code here
@@ -540,7 +681,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 		{			
 			m_comm.SetPortOpen(TRUE);//打开串口
 			GetDlgItem(IDC_BUTTON_CONNECTBOARD)->SetWindowText("关闭串口");
-			GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
+
 			m_ctrlIconOpenoff.SetIcon(m_hIconRed);
 			UpdateData();
 
@@ -642,6 +783,7 @@ void CRadio_stationDlg::OnComm1()
 		flag_com_init_ack=1;
 		m_board_led.SetIcon(m_hIconRed);
 		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡已连接!");
+		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_ALARM)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(TRUE);
@@ -826,7 +968,7 @@ void CRadio_stationDlg::OnKillfocusEditFrequence()
 	// TODO: Add your control notification handler code here
 	CString strBufferReadConfig,strtmpReadConfig;
 	UpdateData(TRUE);    
-	if ((m_frequency>88.0) || (m_frequency<76.0))    
+	if ((m_frequency>FREQUENCY_TERMINAL_END) || (m_frequency<FREQUENCY_TERMINAL_START))    
 	{        
 		GetPrivateProfileString("ConfigInfo","frequency","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
@@ -933,4 +1075,30 @@ void CRadio_stationDlg::OnKillfocusEditMulticastEnd()
 		m_multi_terminal_id_end=m_multi_terminal_id_start;
 	}
 	UpdateData(FALSE);	
+}
+
+void CRadio_stationDlg::int_bits(int a, unsigned char* b, int len)//a:输入整型值；b:输出len长度的数组；len:长度
+{
+	int counter=0;
+	for (int i=(len-1);i>=0;i--)
+	{
+		b[counter]=(a&(0x01<<i))?1:0; 
+		counter++;
+	}
+}
+
+void CRadio_stationDlg::four_bits_ASCII(unsigned char *a, unsigned char *b, int len,int index)//a:输入比特流数组；b:输出ASCII数组；len:长度；index:从b的第index位开始存储
+{
+	int i=0;
+	if ((len%4)!=0)
+	{
+		AfxMessageBox("数据位数出错！",MB_OK,0);
+	} 
+	else
+	{
+		for (i=0;i<len/4;i++)
+		{
+			b[index+i]=a[i*4]*8+a[i*4+1]*4+a[i*4+2]*2+a[i*4+3]*1+48;//ASCII 0码对应十进制是48
+		}
+	}
 }

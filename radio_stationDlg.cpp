@@ -1434,7 +1434,7 @@ void CRadio_stationDlg::OnKillfocusEditWakeupSeconds()
 	// TODO: Add your control notification handler code here
 	CString strBufferReadConfig,strtmpReadConfig;
 	UpdateData(TRUE);    
-	if ((m_wakeup_time>201) || (m_wakeup_time<0))    
+	if ((m_wakeup_time>200) || (m_wakeup_time<0))    
 	{        
 		GetPrivateProfileString("ConfigInfo","wakeup_time","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
@@ -1722,6 +1722,8 @@ void CRadio_stationDlg::OnButtonAlarm()
 	frame_board_send_index++;
 	frame_board_data[frame_board_send_index]=(index_after_gray/4)%256;//最后一位是异或校验和
 	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]=(unsigned char)m_wakeup_time+0x30;//唤醒秒数
+ 	frame_board_send_index++;
 	four_bits_ASCII(frame_board_after_gray,frame_board_data,index_after_gray,frame_board_send_index);
 	frame_board_send_index+=index_after_gray/4;
 	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
@@ -2110,10 +2112,10 @@ void CRadio_stationDlg::OnButtonVoice()
 		GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
 		terminal_control_index=100;
 		OnButtonAlarm();//关闭广播时，先发送三次控制帧，通知终端通话结束
-		Sleep(450);
-		OnButtonAlarm();
-		Sleep(450);
-		OnButtonAlarm();
+// 		Sleep(450);
+// 		OnButtonAlarm();
+// 		Sleep(450);
+// 		OnButtonAlarm();
 		SetTimer(5,500,NULL);//定时器中通知下位机停止广播。500ms后使能,留点时间给子板发反馈帧
 	}
 	flag_fre_is_scaning=0;//标志停止扫描频谱

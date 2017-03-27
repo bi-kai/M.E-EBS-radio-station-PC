@@ -38,7 +38,7 @@ HeaderFile=radio_stationDlg.h
 ImplementationFile=radio_stationDlg.cpp
 Filter=D
 VirtualFilter=dWC
-LastObject=IDC_STATIC_POWER
+LastObject=IDC_EDIT_WAKEUP_SECONDS
 
 [DLG:IDD_ABOUTBOX]
 Type=1

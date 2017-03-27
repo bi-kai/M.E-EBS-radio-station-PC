@@ -6,22 +6,20 @@
 --------------------Configuration: radio_station - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Users\idol\AppData\Local\Temp\RSP8F18.tmp" with contents
+Creating command line "rc.exe /l 0x804 /fo"Debug/radio_station.res" /d "_DEBUG" /d "_AFXDLL" "D:\vc\workspace\radio_station\radio_station.rc"" 
+Creating temporary file "C:\Users\idol\AppData\Local\Temp\RSPB9F4.tmp" with contents
 [
-SkinPPWTL.lib /nologo /subsystem:windows /incremental:yes /pdb:"Debug/radio_station.pdb" /debug /machine:I386 /out:"Debug/radio_station.exe" /pdbtype:sept 
-".\Debug\encrypt.obj"
-".\Debug\mscomm.obj"
-".\Debug\radio_station.obj"
-".\Debug\radio_stationDlg.obj"
-".\Debug\StdAfx.obj"
-".\Debug\radio_station.res"
+/nologo /subsystem:windows /incremental:yes /pdb:"Debug/radio_station.pdb" /debug /machine:I386 /out:"Debug/radio_station.exe" /pdbtype:sept 
+.\Debug\mscomm.obj
+.\Debug\radio_station.obj
+.\Debug\radio_stationDlg.obj
+.\Debug\StdAfx.obj
+.\Debug\radio_station.res
 ]
-Creating command line "link.exe @C:\Users\idol\AppData\Local\Temp\RSP8F18.tmp"
+Creating command line "link.exe @C:\Users\idol\AppData\Local\Temp\RSPB9F4.tmp"
 <h3>Output Window</h3>
+Compiling resources...
 Linking...
-Creating command line "bscmake.exe /nologo /o"Debug/radio_station.bsc"  ".\Debug\StdAfx.sbr" ".\Debug\encrypt.sbr" ".\Debug\mscomm.sbr" ".\Debug\radio_station.sbr" ".\Debug\radio_stationDlg.sbr""
-Creating browse info file...
-<h3>Output Window</h3>
 
 
 

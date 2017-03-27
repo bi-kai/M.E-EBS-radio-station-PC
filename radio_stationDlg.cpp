@@ -45,15 +45,15 @@ unsigned char frame_board_control[9+2]={'$','c','o','n','_'};//控制帧
 unsigned char frame_board_after_gray[168*2]={0};//格雷编码后的数据帧的比特流
 unsigned char frame_board_data[400+2]={'$','d','a','t','_'};//发送数据帧
 unsigned char frame_board_bits[1100]={0};//电台终端帧冲区
-unsigned char frame_receive[100]={0};//接收缓冲区
-unsigned char frame_receive_YW[100]={0};//运维串口接收缓冲区
+
+//unsigned char frame_receive_YW[100]={0};//运维串口接收缓冲区
 
 extern unsigned char cipherkey_base[16];//电台私钥
 
 
 /***********运维板***************/
-unsigned char frame_board_check_YW[7+2]={'$','r','d','y','_'};//运维连接检测帧
-unsigned char frame_board_reset_YW[8+2]={'$','r','s','t','_'};//运维复位帧
+unsigned char frame_board_check_YW[7+2]={'$','r','e','d','_'};//运维连接检测帧
+unsigned char frame_board_reset_YW[8+2]={'$','r','s','e','_'};//运维复位帧
 unsigned char frame_board_sound_YW[8+2]={'$','s','w','h','_'};//运维切换音频开关申请帧
 unsigned char frame_board_connect_YW[7+2]={'$','p','p','p','_'};//运维上位机两个软件相互查询帧
 unsigned char frame_board_scan_YW[7+2]={'$','s','c','a','_'};//运维频谱扫描，继电器控制帧
@@ -671,13 +671,13 @@ void CRadio_stationDlg::OnButtonWakeup()
 	{		
 		wakeup_type[0]=1;//单播01、广播10、组播11
 		wakeup_type[1]=0;
-		index_resent_data_frame=1;//重传帧编号
+		index_resent_data_frame=1;//广播重传帧编号
 	} 
 	else if(m_radio_wakeup==1)//单播唤醒帧
 	{
 		wakeup_type[0]=0;//单播01、广播10、组播11
 		wakeup_type[1]=1;
-		index_resent_data_frame=2;//重传帧编号
+		index_resent_data_frame=2;//单播重传帧编号
 
 		i=(int)(m_unicast_terminal_id-m_radio_id*pow(2,18));//终端ID
 		int_bits(i,target_address_unicast,24);
@@ -691,7 +691,7 @@ void CRadio_stationDlg::OnButtonWakeup()
 	{		
 		wakeup_type[0]=1;//单播01、广播10、组播11
 		wakeup_type[1]=1;
-		index_resent_data_frame=3;//重传帧编号
+		index_resent_data_frame=3;//组播重传帧编号
 
 		i=(int)(m_multi_terminal_id_start-m_radio_id*pow(2,18));//终端起始ID
 		int_bits(i,target_address_multicast_start,24);
@@ -1081,6 +1081,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 			{
 				m_comm.SetOutput(COleVariant(Array));//发送数据
 			}
+			index_resent_data_frame=0;//连接帧不支持重传机制
 			SetTimer(2,TIMER2_MS,NULL);//没有处在频谱扫描阶段才打开定期查询，10秒查询一次子板是否保持连接。恢复硬件连接时，可以自动连接
 		}
 		else
@@ -1130,6 +1131,7 @@ void CRadio_stationDlg::OnComm1()
 	CString strDisp="",strTmp="";
 	int frequency_point=0;//频率扫描的总的频点数
 	double frequency_buf=0;//频点计算
+	unsigned char frame_receive[100]={0};//接收缓冲区
 	
 	if((m_comm.GetCommEvent()==2)) //事件值为2表示接收缓冲区内有字符
 	{
@@ -1261,10 +1263,11 @@ void CRadio_stationDlg::OnComm1()
 			OnButtonWakeup(); 
 			break;
 		case 4://控制指令帧
-			terminal_control_index=0;
+//			terminal_control_index=0;
 			OnButtonAlarm();
 			break;
 		case 5://认证帧
+			OnButtonIdentify();
 			break;
 		}
 		m_StatBar->SetText("软件及广播板状态：子板请求重传",1,0);
@@ -1632,7 +1635,7 @@ void CRadio_stationDlg::OnSelendokComboAlarmType()
 {
 	// TODO: Add your control notification handler code here
 	
-	alarm_index=m_alarm_command.GetCurSel()+1;
+	alarm_index=m_alarm_command.GetCurSel()+2;//从第二个脉冲开始
 // 	CString str1;
 // 	str1.Format("%d",alarm_index);
 // 	AfxMessageBox(str1,MB_OK,0);
@@ -1666,18 +1669,18 @@ void CRadio_stationDlg::OnButtonAlarm()
 	
 	frame_type[0]=1;//帧类型：控制帧10
 	frame_type[1]=0;
-	if ((terminal_control_index>0)&&(terminal_control_index<1024))//标志指定的控制。如：100：广播完毕；
-	{
-		if (terminal_control_index<=99)
-		{
-			OnSelendokComboAlarmType();//如果不是一些特殊控制指令，如100，则重新获取下拉框中的选项的索引号
-		} 
-		else if(terminal_control_index>99)
-		{
-			alarm_index=terminal_control_index;
-		}
-		
-	}
+// 	if ((terminal_control_index>0)&&(terminal_control_index<1024))//标志指定的控制。如：100：广播完毕；
+// 	{
+// 		if (terminal_control_index<=99)
+// 		{
+// 			OnSelendokComboAlarmType();//如果不是一些特殊控制指令，如100，则重新获取下拉框中的选项的索引号
+// 		} 
+// 		else if(terminal_control_index>99)
+// 		{
+// 			alarm_index=terminal_control_index;
+// 		}
+// 		
+// 	}
 
 	int_bits(alarm_index,control_region,10);
 	
@@ -1696,7 +1699,7 @@ void CRadio_stationDlg::OnButtonAlarm()
 		frame_board_bits[frame_send_index]=control_region[k];
 		frame_send_index++;
 	}
-	index_resent_data_frame=4;//重传帧编号
+	index_resent_data_frame=4;//报警帧编号
 	for (k=0;k<36;k++)//帧计数器
 	{
 		frame_board_bits[frame_send_index]=frame_counter[k];
@@ -1883,7 +1886,7 @@ void CRadio_stationDlg::OnButtonScan()
 	{
 		m_comm.SetOutput(COleVariant(Array));//发送数据
 	}
-
+	index_resent_data_frame=7;//频谱扫描，继电器控制帧
 
 
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
@@ -2209,8 +2212,9 @@ void CRadio_stationDlg::OnButtonVoice()
 		flag_voice_broad=0;
 		voice_broad=4;//关闭广播
 		GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
-		terminal_control_index=100;
+		alarm_index=100;
 		OnButtonAlarm();//关闭广播时，先发送三次控制帧，通知终端通话结束
+		OnSelendokComboAlarmType();//重新获取报警指令下拉框中的选项的索引号
 // 		Sleep(450);
 // 		OnButtonAlarm();
 // 		Sleep(450);
@@ -2346,6 +2350,7 @@ void CRadio_stationDlg::OnButtonBoardReset()
 	// TODO: Add your control notification handler code here
 	//连接串口1，发送数据帧$rst_0x010x02?
 	//顺便将“打开串口”函数执行两次，相当于关闭并打开串口了
+	index_resent_data_frame=6;//6运维板复位重传帧编号
 }
 
 void CRadio_stationDlg::OnButtonTTS() 
@@ -2531,6 +2536,7 @@ void CRadio_stationDlg::OnButtonConnect_YW()
 			{
 				m_comm_YW.SetOutput(COleVariant(Array));//发送数据
 			}
+			index_resent_data_frame=0;//连接帧不支持重传机制
 			SetTimer(6,(TIMER2_MS+3000),NULL);//没有处在频谱扫描阶段才打开定期查询，10+3秒(与广播板的查询在时间上错开)查询一次子板是否保持连接。恢复硬件连接时，可以自动连接
 		}
 		else
@@ -2568,6 +2574,7 @@ void CRadio_stationDlg::OnComm_YW()
 	CString strDisp="",strTmp="";
 	int frequency_point=0;//频率扫描的总的频点数
 	double frequency_buf=0;//频点计算
+	unsigned char frame_receive[100]={0};//接收缓冲区
 	
 	if((m_comm_YW.GetCommEvent()==2)) //事件值为2表示接收缓冲区内有字符
 	{
@@ -2600,113 +2607,106 @@ void CRadio_stationDlg::OnComm_YW()
 		}
 //		AfxMessageBox(strDisp,MB_OK,0);
 
-	if (((flag_com_init_ack==0)||(timer_board_disconnect_times!=0))&&(frame_receive[1]=='r')&&(frame_receive[2]=='d')&&(frame_receive[3]=='y')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_wakeup_times)&&(frame_receive[9]==XOR(frame_receive,9)))//首次连接握手，上位机软件接收时，不用避免$,\r,\n
+	if (((flag_com_init_ack_YW==0)||(timer_board_disconnect_times_YW!=0))&&(frame_receive[1]=='r')&&(frame_receive[2]=='e')&&(frame_receive[3]=='d')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_wakeup_times)&&(frame_receive[7]==XOR(frame_receive,7)))//首次连接握手，上位机软件接收时，不用避免$,\r,\n
 	{
-		flag_com_init_ack=1;
-		m_board_led.SetIcon(m_hIconRed);
-		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡已连接!"); 
-		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
-		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(TRUE);
-		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
-		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(TRUE);
-		GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(TRUE);
-		GetDlgItem(IDC_SLIDER_POWER)->EnableWindow(TRUE);
-		timer_board_disconnect_times=0;//收到反馈则清零
-		m_frequency_native=FREQUENCY_TERMINAL_START+(double)frame_receive[7]/10;
-		CString strTemp;
-		strTemp.Format(_T("%.1f"),m_frequency_native);
-		::WritePrivateProfileString("ConfigInfo","frequency_native",strTemp,".\\config_radiostation.ini");
-
-		strTemp.Format(_T("%.1f"),frame_receive[8]);
-		::WritePrivateProfileString("ConfigInfo","POWER_SELECT",strTemp,".\\config_radiostation.ini");
-		
-		m_POWER_SELECT.SetPos(frame_receive[8]);
-		m_power_num.Format("%d",frame_receive[8]);
+		flag_com_init_ack_YW=1;
+		m_board_led_YW.SetIcon(m_hIconRed);
+		GetDlgItem(IDC_STATIC_BOARDCONNECT2)->SetWindowText("运维板已连接!"); 
+		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);//运维板未连接时，是不能频谱扫描的
+		timer_board_disconnect_times_YW=0;//收到反馈则清零
+// 		m_frequency_native=FREQUENCY_TERMINAL_START+(double)frame_receive[7]/10;
+// 		CString strTemp;
+// 		strTemp.Format(_T("%.1f"),m_frequency_native);
+// 		::WritePrivateProfileString("ConfigInfo","frequency_native",strTemp,".\\config_radiostation.ini");
+// 
+// 		strTemp.Format(_T("%.1f"),frame_receive[8]);
+// 		::WritePrivateProfileString("ConfigInfo","POWER_SELECT",strTemp,".\\config_radiostation.ini");
+// 		
+// 		m_POWER_SELECT.SetPos(frame_receive[8]);
+// 		m_power_num.Format("%d",frame_receive[8]);
 		UpdateData(FALSE);
 		
-	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='f')&&(frame_receive[2]=='r')&&(frame_receive[3]=='e')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_scan_times)&&(frame_receive[10]==XOR(frame_receive,10)))//频谱扫描
+	}else if ((flag_com_init_ack_YW==1)&&(frame_receive[1]=='r')&&(frame_receive[2]=='s')&&(frame_receive[3]=='e')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_scan_times)&&(frame_receive[8]==XOR(frame_receive,8)))//复位指定模块
 	{
-		frequency_buf=76.0+(double)frame_receive[7]/10;
-		strTmp.Format("%.1f",frequency_buf);
-		m_rssi_list.InsertItem(frame_receive[7],strTmp);//插入行
-		strTmp.Format("%d",frame_receive[8]);
-		m_rssi_list.SetItemText(frame_receive[7],1,strTmp);//设置数据
-		strTmp.Format("%d",frame_receive[9]);
-		m_rssi_list.SetItemText(frame_receive[7],2,strTmp);//设置数据
-		m_rssi_list.SendMessage(WM_VSCROLL,SB_BOTTOM,NULL); //随数据滚动
-		m_StatBar->SetText("软件及广播板状态：数据接收...",1,0);
+// 		frequency_buf=76.0+(double)frame_receive[7]/10;
+// 		strTmp.Format("%.1f",frequency_buf);
+// 		m_rssi_list.InsertItem(frame_receive[7],strTmp);//插入行
+// 		strTmp.Format("%d",frame_receive[8]);
+// 		m_rssi_list.SetItemText(frame_receive[7],1,strTmp);//设置数据
+// 		strTmp.Format("%d",frame_receive[9]);
+// 		m_rssi_list.SetItemText(frame_receive[7],2,strTmp);//设置数据
+// 		m_rssi_list.SendMessage(WM_VSCROLL,SB_BOTTOM,NULL); //随数据滚动
+		
+		switch(frame_receive[7]){
+		case 1:
+			m_StatBar->SetText("运维板状态：有线电话模块复位完毕",2,0); 
+			break;
+		case 2:
+			m_StatBar->SetText("运维板状态：卫星电话模块复位完毕",2,0); 
+			break;
+		case 3:
+			m_StatBar->SetText("运维板状态：3G模块复位完毕",2,0); 
+			break;
+		case 4:
+			m_StatBar->SetText("运维板状态：北斗模块复位完毕",2,0); 
+			break;
+		case 5:
+			m_StatBar->SetText("运维板状态：广播板复位完毕",2,0); 
+			break;
+		case 6:
+			m_StatBar->SetText("运维板状态：其他模块复位完毕",2,0); 
+			break;
+		}
 
-	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='c')&&(frame_receive[2]=='o')&&(frame_receive[3]=='n')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[8]==XOR(frame_receive,8)))//控制帧
+	}else if ((flag_com_init_ack_YW==1)&&(frame_receive[1]=='s')&&(frame_receive[2]=='w')&&(frame_receive[3]=='h')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[8]==XOR(frame_receive,8)))//切换音频开关申请帧
 	{
-		if (frame_receive[7]==2)
+		if (frame_receive[7]==1)
 		{
-			AfxMessageBox("下位机频点配置成功！",MB_OK,0);
+			m_StatBar->SetText("运维板状态：开关切换为1",2,0); 
 		} 
+		else if (frame_receive[7]==2)
+		{
+			m_StatBar->SetText("运维板状态：开关切换为2",2,0); 
+		}
 		else if (frame_receive[7]==3)
 		{
-			AfxMessageBox("开始广播",MB_OK,0);
-		}else if (frame_receive[7]==4)
+			m_StatBar->SetText("运维板状态：开关切换为3",2,0); 
+		}
+		else if (frame_receive[7]==4)
 		{
-			AfxMessageBox("停止广播",MB_OK,0);
+			m_StatBar->SetText("运维板状态：开关切换为4",2,0); 
 		}
 		
 
 
-	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='d')&&(frame_receive[2]=='a')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_data_times)&&(frame_receive[7]==XOR(frame_receive,7)))//数据帧反馈信息
+	}else if ((flag_com_init_ack_YW==1)&&(frame_receive[1]=='s')&&(frame_receive[2]=='c')&&(frame_receive[3]=='a')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_data_times)&&(frame_receive[7]==XOR(frame_receive,7)))//频谱扫描帧反馈信息
 	{
-		switch (index_resent_data_frame)
-		{
-		case 1://广播唤醒帧 
-			m_StatBar->SetText("软件及广播板状态：广播帧已发送",1,0);
-//			m_frame_send_state.SetIcon(m_hIconRed);
-			break;
-		case 2://单播唤醒帧
-			m_StatBar->SetText("软件及广播板状态：单播帧已发送",1,0);
-//			m_frame_send_state.SetIcon(m_hIconRed);
-			break;
-		case 3://组播唤醒帧
-			m_StatBar->SetText("软件及广播板状态：组播帧已发送",1,0);
-//			m_frame_send_state.SetIcon(m_hIconRed);
-			break;
-		case 4://控制指令帧
-			m_StatBar->SetText("软件及广播板状态：控制帧已发送",1,0);
-//			m_frame_send_state.SetIcon(m_hIconRed);
-			break;
-		case 5://认证帧
-			m_StatBar->SetText("软件及广播板状态：认证帧已发送",1,0);
-//			m_frame_send_state.SetIcon(m_hIconRed);
-			break;
-		}
+		m_StatBar->SetText("运维板状态：频谱扫描",2,0);
 		
-
+		
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='r')&&(frame_receive[2]=='s')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==0)&&(frame_receive[7]==0)&&(frame_receive[8]==XOR(frame_receive,8)))//重传帧
 	{
-	//	AfxMessageBox("wakaka",MB_OK,0);
+		//	AfxMessageBox("wakaka",MB_OK,0);
 		switch (index_resent_data_frame)
 		{
-		case 1://广播唤醒帧
-			OnButtonWakeup(); 
+		case 6://运维板复位帧校验出错，请求重传
+			OnButtonBoardReset();
 			break;
-		case 2://单播唤醒帧
-			OnButtonWakeup(); 
+		case 7://频谱扫描，继电器控制帧校验出错，请求重传
+			OnButtonScan();
 			break;
-		case 3://组播唤醒帧
-			OnButtonWakeup(); 
+		case 3://
+
 			break;
-		case 4://控制指令帧
-			terminal_control_index=0;
-			OnButtonAlarm();
-			break;
-		case 5://认证帧
-			break;
+
 		}
 		m_StatBar->SetText("软件及广播板状态：子板请求重传",1,0);
-	} 
+	}  
 	else
 	{
 		AfxMessageBox("运维板回传帧有错误！",MB_OK,0);

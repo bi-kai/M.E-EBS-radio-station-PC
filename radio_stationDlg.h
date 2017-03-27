@@ -150,8 +150,8 @@ private:
 	BOOL SerialPortOpenCloseFlag;//串口打开关闭标志位
 	BOOL SerialPortOpenCloseFlag_YW;//运维串口打开关闭标志位
 	bool flag_modified;//修改唤醒帧字段标志位
-	bool flag_com_init_ack;//上位机软件查询下位机，下位机对查询信息的应答标志位。1:连接成功
-	bool flag_com_init_ack_YW;//上位机软件查询下位机，下位机对查询信息的应答标志位。1:连接成功
+	bool flag_com_init_ack;//上位机软件查询下位机，下位机对查询信息的应答标志位。1:连接成功；0：连接失败；
+	bool flag_com_init_ack_YW;//上位机软件查询运维板，运维板对查询信息的应答标志位。1:连接成功；0：连接失败；
 	int frame_index;//接收缓冲帧的索引
 	int frame_index_YW;//运维串口接收缓冲帧的索引
 	int frame_send_index;//发送缓冲区无线帧比特流计数器
@@ -165,7 +165,7 @@ private:
 	unsigned char index_data_times;//数据帧发送次数计数器，上下位机通信，保证每帧数据都不同
 	bool flag_board_modified;//修改下位机配置标志位
 //	bool flag_scan_button;//扫描按钮上文字切换
-	int index_resent_data_frame;//重传帧编号
+	int index_resent_data_frame;//重传帧编号，0：空闲(查询帧：查询帧不使用出错重传机制，因为是不停的查询的)；1~3：唤醒帧编号；4：报警帧编号；5：认证帧编号；6：运维板复位帧编号；7：频谱扫描，继电器控制帧；
 
 	CStatusBarCtrl *m_StatBar;//状态栏
 	bool flag_voice_broad;//软件界面上开始广播停止广播文字切换标志位

@@ -1384,7 +1384,7 @@ void CRadio_stationDlg::OnKillfocusEditWakeupSeconds()
 	// TODO: Add your control notification handler code here
 	CString strBufferReadConfig,strtmpReadConfig;
 	UpdateData(TRUE);    
-	if ((m_wakeup_time>15) || (m_wakeup_time<0))    
+	if ((m_wakeup_time>150) || (m_wakeup_time<0))    
 	{        
 		GetPrivateProfileString("ConfigInfo","wakeup_time","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();

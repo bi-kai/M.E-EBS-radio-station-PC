@@ -24,7 +24,7 @@ static char THIS_FILE[] = __FILE__;
 #define FREQUENCY_POINT 0X10//FM可用频点
 
 #define FREQUENCY_TERMINAL_START 76.0//终端通信频点最小值
-#define FREQUENCY_TERMINAL_END 88.0//终端通信频点最大值
+#define FREQUENCY_TERMINAL_END 108.0//终端通信频点最大值
 
 unsigned char frame_board_check[7+2]={'$','r','d','y','_'};//连接检测帧
 unsigned char frame_board_frequency[7+2]={'$','f','r','e','_'};//频谱检测帧
@@ -1089,7 +1089,7 @@ void CRadio_stationDlg::OnComm1()
 	{
 		flag_com_init_ack=1;
 		m_board_led.SetIcon(m_hIconRed);
-		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡已连接!");
+		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡已连接!"); 
 		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
@@ -1436,7 +1436,10 @@ void CRadio_stationDlg::OnButtonBoardConfig()
 	}
 	frame_board_control[5]=index_control_times;
 	frame_board_control[6]=2;
-	int tmp=(int)((m_frequency_native-FREQUENCY_TERMINAL_START)*10);
+
+	int tmp2=(int)(m_frequency_native*10.0);
+	int tmp=(int)(tmp2-(int)(FREQUENCY_TERMINAL_START*10));//频点获取，二进制化
+
 	frame_board_control[7]=(unsigned char)(tmp);
 	frame_board_control[8]=XOR(frame_board_control,8);
 	if ((frame_board_control[8]=='$')||(frame_board_control[8]==0x0d))

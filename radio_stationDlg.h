@@ -24,6 +24,8 @@ public:
 // Dialog Data
 	//{{AFX_DATA(CRadio_stationDlg)
 	enum { IDD = IDD_RADIO_STATION_DIALOG };
+	CListCtrl	m_rssi_list;
+	CComboBox	m_alarm_command;
 	CStatic	m_board_connect;
 	CStatic	m_board_led;
 	CStatic	m_ctrlIconOpenoff;
@@ -81,6 +83,8 @@ protected:
 	afx_msg void OnKillfocusEditUnicast();
 	afx_msg void OnKillfocusEditMulticastStart();
 	afx_msg void OnKillfocusEditMulticastEnd();
+	afx_msg void OnSelendokComboAlarmType();
+	afx_msg void OnButtonAlarm();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -107,6 +111,7 @@ private:
 	char m_DParity;
 	int m_DDatabits;
 	LONG m_DBaud;
+	int alarm_index;
 	
 	BOOL SerialPortOpenCloseFlag;//串口打开关闭标志位
 	bool flag_modified;//修改唤醒帧字段标志位

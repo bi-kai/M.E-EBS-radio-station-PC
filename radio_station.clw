@@ -30,7 +30,7 @@ ImplementationFile=radio_stationDlg.cpp
 Filter=D
 BaseClass=CDialog
 VirtualFilter=dWC
-LastObject=CRadio_stationDlg
+LastObject=IDC_LIST1
 
 [CLS:CAboutDlg]
 Type=0
@@ -50,7 +50,7 @@ Control4=IDOK,button,1342373889
 [DLG:IDD_RADIO_STATION_DIALOG]
 Type=1
 Class=CRadio_stationDlg
-ControlCount=59
+ControlCount=61
 Control1=IDC_RADIO_BROADCAST,button,1342308361
 Control2=IDC_RADIO_UNICASE,button,1342177289
 Control3=IDC_RADIO_MULTICAST,button,1342177289
@@ -110,4 +110,6 @@ Control56=IDC_BUTTON_BOARD_MODIFY,button,1342242816
 Control57=IDC_BUTTON_BOARD_CONFIG,button,1342242816
 Control58=IDC_STATIC,button,1342177287
 Control59=IDC_STATIC,button,1342177287
+Control60=IDC_BUTTON1,button,1342242816
+Control61=IDC_LIST1,SysListView32,1350631424
 

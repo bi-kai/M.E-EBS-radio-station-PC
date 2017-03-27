@@ -102,6 +102,8 @@ void CRadio_stationDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CRadio_stationDlg)
+	DDX_Control(pDX, IDC_LIST1, m_rssi_list);
+	DDX_Control(pDX, IDC_COMBO_ALARM_TYPE, m_alarm_command);
 	DDX_Control(pDX, IDC_STATIC_BOARDCONNECT, m_board_connect);
 	DDX_Control(pDX, IDC_STATIC_BOARD_LED, m_board_led);
 	DDX_Control(pDX, IDC_STATIC_OPENOFF, m_ctrlIconOpenoff);
@@ -148,6 +150,8 @@ BEGIN_MESSAGE_MAP(CRadio_stationDlg, CDialog)
 	ON_EN_KILLFOCUS(IDC_EDIT_UNICAST, OnKillfocusEditUnicast)
 	ON_EN_KILLFOCUS(IDC_EDIT_MULTICAST_START, OnKillfocusEditMulticastStart)
 	ON_EN_KILLFOCUS(IDC_EDIT_MULTICAST_END, OnKillfocusEditMulticastEnd)
+	ON_CBN_SELENDOK(IDC_COMBO_ALARM_TYPE, OnSelendokComboAlarmType)
+	ON_BN_CLICKED(IDC_BUTTON_ALARM, OnButtonAlarm)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -189,6 +193,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	m_DParity='N';
 	m_DDatabits=8;
 	m_DBaud=115200;
+	alarm_index=1;
 	SerialPortOpenCloseFlag=FALSE;//默认关闭串口
 	flag_modified=0;//修改电台ID标志位
 	flag_com_init_ack=0;//未收到下位机的应答
@@ -279,6 +284,25 @@ BOOL CRadio_stationDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 //	((CButton *)GetDlgItem(IDC_RADIO_BROADCAST))->SetCheck(TRUE);//选上
+/**************************RSSI列表配置**********************************/
+	m_rssi_list.ModifyStyle( 0, LVS_REPORT );// 报表模式
+	m_rssi_list.SetExtendedStyle(m_rssi_list.GetExtendedStyle() | LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);// 间隔线+行选中
+	
+	m_rssi_list.InsertColumn(0,"频点(MHz)");
+	m_rssi_list.InsertColumn(1,"RSSI");
+	
+	CRect rect;
+	m_rssi_list.GetClientRect(rect); //获得当前客户区信息
+	m_rssi_list.SetColumnWidth(0, rect.Width()*2/3); //设置列的宽度。
+	m_rssi_list.SetColumnWidth(1, rect.Width()/3);
+	m_rssi_list.InsertItem(0,"79.4");
+	m_rssi_list.SetItemText(0,1,"44");
+	
+	LVFINDINFO info;
+	int nIndex;
+	info.flags = LVFI_PARTIAL|LVFI_STRING;
+	info.psz = "79.4";
+	nIndex = m_rssi_list.FindItem(&info);  // nIndex为行数(从0开始)
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -367,11 +391,13 @@ void CRadio_stationDlg::OnRadioUnicase()
 
 void CRadio_stationDlg::OnButtonWakeup() 
 {
-	// TODO: Add your control notification handler code here//encode(input,output);
+	// TODO: Add your control notification handler code here//
 	int k=0;
 	int i=0;
 	unsigned char char_buf[4][4]={0};//AES加密
 	unsigned char bits_buf[128]={0};//AES加密
+	unsigned char before_gray[12]={0};//格雷编码前的12位的串
+	unsigned char after_gray[24]={0};//格雷编码后的24位的串
 
 	frame_board_send_index=5;//子板通信数据帧计数器，前五位被占用
 	
@@ -461,7 +487,7 @@ void CRadio_stationDlg::OnButtonWakeup()
 		frame_send_index++;
 	}
 	
-	/*****************AES加密********************************/
+/*****************AES加密********************************/
 	for(i=0;i<128;i++){
 		if(i<frame_send_index){//把格雷译码后的数据中后36位前的内容放到aes_bits[]中
 			bits_buf[i]=frame_board_bits[i];
@@ -477,11 +503,27 @@ void CRadio_stationDlg::OnButtonWakeup()
 		frame_board_bits[frame_send_index]=bits_buf[k];
 		frame_send_index++;
 	}
+/*****************gray编码************************************/
+	index_after_gray=0;
+	for (k=0;k<(frame_send_index/12);k++)//格雷编码次数
+	{
+		for (i=0;i<12;i++)
+		{
+			before_gray[i]=frame_board_bits[k*12+i];
+		}
+		gray_encode(before_gray,after_gray);
+		for (i=0;i<24;i++)
+		{
+			frame_board_after_gray[index_after_gray]=after_gray[i];
+			index_after_gray++;
+		}
+		
+	}
 
-	CString str1;
-	str1.Format("%d",frame_send_index);
-	AfxMessageBox(str1,MB_OK,0);
-	/******************串口发送数据*******************************/
+//	CString str1;
+//	str1.Format("%d",k);
+//	AfxMessageBox(str1,MB_OK,0);
+/******************串口发送数据*******************************/
 	if (index_data_times<200)
 	{
 		index_data_times++;
@@ -492,12 +534,12 @@ void CRadio_stationDlg::OnButtonWakeup()
 	}
 	frame_board_data[frame_board_send_index]=index_data_times;
 	frame_board_send_index++;
-	frame_board_data[frame_board_send_index]=(frame_send_index/4)/256;
+	frame_board_data[frame_board_send_index]=(index_after_gray/4)/256;
 	frame_board_send_index++;
-	frame_board_data[frame_board_send_index]=(frame_send_index/4)%256;
+	frame_board_data[frame_board_send_index]=(index_after_gray/4)%256+1;//最后一位是异或校验和
 	frame_board_send_index++;
-	four_bits_ASCII(frame_board_bits,frame_board_data,frame_send_index,frame_board_send_index);
-	frame_board_send_index+=frame_send_index/4;
+	four_bits_ASCII(frame_board_after_gray,frame_board_data,index_after_gray,frame_board_send_index);
+	frame_board_send_index+=index_after_gray/4;
 	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
 	frame_board_send_index++;
 	if (frame_board_data[frame_board_send_index]=='$')
@@ -785,7 +827,6 @@ void CRadio_stationDlg::OnComm1()
 		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡已连接!");
 		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
-		GetDlgItem(IDC_BUTTON_ALARM)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(TRUE);
 		
 	} 
@@ -1101,4 +1142,129 @@ void CRadio_stationDlg::four_bits_ASCII(unsigned char *a, unsigned char *b, int 
 			b[index+i]=a[i*4]*8+a[i*4+1]*4+a[i*4+2]*2+a[i*4+3]*1+48;//ASCII 0码对应十进制是48
 		}
 	}
+}
+
+void CRadio_stationDlg::OnSelendokComboAlarmType() 
+{
+	// TODO: Add your control notification handler code here
+	alarm_index=m_alarm_command.GetCurSel()+1;
+// 	CString str1;
+// 	str1.Format("%d",alarm_index);
+// 	AfxMessageBox(str1,MB_OK,0);
+	GetDlgItem(IDC_BUTTON_ALARM)->EnableWindow(TRUE);
+	UpdateData();
+}
+
+void CRadio_stationDlg::OnButtonAlarm() 
+{
+	// TODO: Add your control notification handler code here
+	int k=0;
+	int i=0;
+	unsigned char char_buf[4][4]={0};//AES加密
+	unsigned char bits_buf[128]={0};//AES加密
+	unsigned char before_gray[12]={0};//格雷编码前的12位的串
+	unsigned char after_gray[24]={0};//格雷编码后的24位的串
+	unsigned char control_region[10]={0};//控制域
+
+	frame_board_send_index=5;//子板通信数据帧计数器，前五位被占用
+	
+	frame_type[0]=1;//帧类型：控制帧10
+	frame_type[1]=0;
+
+	int_bits(alarm_index,control_region,10);
+	
+	i=(int)m_frame_counter;
+	frame_counter[35]=0;
+	frame_counter[34]=0;
+	frame_counter[33]=0;
+	frame_counter[32]=0;
+	int_bits(i,frame_counter,32);
+/*****************开始组帧********************************/
+	frame_board_bits[0]=frame_type[0];
+	frame_board_bits[1]=frame_type[1];
+	frame_send_index=2;//前面已经有了2个字节，从此开始++
+	for (k=0;k<10;k++)//通信频点
+	{
+		frame_board_bits[frame_send_index]=control_region[k];
+		frame_send_index++;
+	}
+
+	for (k=0;k<36;k++)//帧计数器
+	{
+		frame_board_bits[frame_send_index]=frame_counter[k];
+		frame_send_index++;
+	}
+	
+/*****************AES加密********************************/
+	for(i=0;i<128;i++){
+		if(i<frame_send_index){//把格雷译码后的数据中后36位前的内容放到aes_bits[]中
+			bits_buf[i]=frame_board_bits[i];
+		}else{
+			bits_buf[i]=0;//不够128位则补零，超过128，则此处不执行，仅取前128位
+		}
+	}
+	bit_char(bits_buf,char_buf);
+	Encrypt(char_buf,cipherkey_base);
+	char_bit(char_buf,bits_buf);
+	for (k=0;k<36;k++)//AES串
+	{
+		frame_board_bits[frame_send_index]=bits_buf[k];
+		frame_send_index++;
+	}
+/*****************gray编码************************************/
+	index_after_gray=0;
+	for (k=0;k<(frame_send_index/12);k++)//格雷编码次数
+	{
+		for (i=0;i<12;i++)
+		{
+			before_gray[i]=frame_board_bits[k*12+i];
+		}
+		gray_encode(before_gray,after_gray);
+		for (i=0;i<24;i++)
+		{
+			frame_board_after_gray[index_after_gray]=after_gray[i];
+			index_after_gray++;
+		}
+		
+	}
+
+//	CString str1;
+//	str1.Format("%d",index_after_gray);
+//	AfxMessageBox(str1,MB_OK,0);
+/******************串口发送数据*******************************/
+	if (index_data_times<200)
+	{
+		index_data_times++;
+	} 
+	else
+	{
+		index_data_times=0;
+	}
+	frame_board_data[frame_board_send_index]=index_data_times;
+	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]=(index_after_gray/4)/256;
+	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]=(index_after_gray/4)%256+1;//最后一位是异或校验和
+	frame_board_send_index++;
+	four_bits_ASCII(frame_board_after_gray,frame_board_data,index_after_gray,frame_board_send_index);
+	frame_board_send_index+=index_after_gray/4;
+	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
+	frame_board_send_index++;
+	if (frame_board_data[frame_board_send_index]=='$')
+	{
+		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
+	}
+	CByteArray Array;
+	Array.RemoveAll();
+	Array.SetSize(frame_board_send_index);
+	
+	for (i=0;i<frame_board_send_index;i++)
+	{
+		Array.SetAt(i,frame_board_data[i]);
+	}
+	
+	if(m_comm.GetPortOpen())
+	{
+		m_comm.SetOutput(COleVariant(Array));//发送数据
+	}	
 }

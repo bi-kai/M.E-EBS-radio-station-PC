@@ -240,13 +240,13 @@ void bit_char(unsigned char bit_array[128],unsigned char char_array[4][4]){
 }
 
 void gray_encode(
-			char bitin[],      /*待编码的数据*/
-			char code[]		/*编码后的数据有这样的关系 code[ 24]={bitin[11]--bitin[0],Reg[10],Reg[0],parity} 构成*/
+		unsigned char bitin[],      /*待编码的数据*/
+		unsigned char code[]		/*编码后的数据有这样的关系 code[ 24]={bitin[11]--bitin[0],Reg[10],Reg[0],parity} 构成*/
 			)      
 {	
-	char Reg[11]={0};             /*11个寄存器初始化为0*/
-	char i=0,j=0,sum=0;                        /*循环控制变量*/
-	char charer_value[12];			/*中间变量节点*/
+	unsigned char Reg[11]={0};             /*11个寄存器初始化为0*/
+	unsigned char i=0,j=0,sum=0;                        /*循环控制变量*/
+	unsigned char charer_value[12];			/*中间变量节点*/
 	
 	/*=============根据生成系统码的乘除法电路得到以下关系====================================================*/
 	for(i=0;i<M;i++)

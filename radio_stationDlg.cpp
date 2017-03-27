@@ -297,21 +297,25 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(FALSE);
 	GetDlgItem(IDC_SLIDER_POWER)->EnableWindow(FALSE);
-
+	GetDlgItem(IDC_BUTTON_BOARD_RST)->EnableWindow(FALSE);
+/****************************串口配置**********************************/
 	m_comm.SetCommPort(1); //选择com1
 	m_comm.SetInputMode(1); //输入方式为二进制方式
 	m_comm.SetInBufferSize(1024); //设置输入缓冲区大小
 	m_comm.SetOutBufferSize(10240); //设置输出缓冲区大小
 	m_comm.SetSettings("115200,n,8,1"); //波特率115200，无校验，8个数据位，1个停止位	 
-	m_comm.SetRThreshold(1); //参数1表示每当串口接收缓冲区中有多于或等于1个字符时将引发一个接收数据的OnComm事件
+	m_comm.SetRThreshold(8); //参数1表示每当串口接收缓冲区中有多于或等于1个字符时将引发一个接收数据的OnComm事件
 	m_comm.SetInputLen(0); //设置当前接收区数据长度为0
-	//	 m_comm.GetInput();    //先预读缓冲区以清除残留数据
-	if(!m_comm.GetPortOpen())
-	{		 
-		//		m_comm.SetPortOpen(TRUE);//打开串口(此处不必打开，后边用“打开串口”按钮实现)
-	}
-	else
-		 MessageBox("can not open serial port");
+//	m_comm.GetInput();    //先预读缓冲区以清除残留数据
+	
+	m_comm_YW.SetCommPort(2); //选择com2
+	m_comm_YW.SetInputMode(1); //输入方式为二进制方式
+	m_comm_YW.SetInBufferSize(1024); //设置输入缓冲区大小
+	m_comm_YW.SetOutBufferSize(10240); //设置输出缓冲区大小
+	m_comm_YW.SetSettings("115200,n,8,1"); //波特率115200，无校验，8个数据位，1个停止位	 
+	m_comm_YW.SetRThreshold(8); //参数1表示每当串口接收缓冲区中有多于或等于1个字符时将引发一个接收数据的OnComm事件
+	m_comm_YW.SetInputLen(0); //设置当前接收区数据长度为0
+//  m_comm_YW.GetInput();    //先预读缓冲区以清除残留数据
 
 /****************************缩短界面**********************************/
 	flag_button_advanced=0;
@@ -1826,6 +1830,11 @@ void CRadio_stationDlg::OnKillfocusEditBoardFrequency()
 void CRadio_stationDlg::OnButtonScan() 
 {
 	// TODO: Add your control notification handler code here
+	if ((SerialPortOpenCloseFlag==FALSE)||(SerialPortOpenCloseFlag_YW==FALSE))
+	{
+		AfxMessageBox("各串口必须全部连接才能扫描频谱",MB_OK,0);
+		return;
+	}
 	KillTimer(2);
 	m_StatBar->SetText("软件及广播板状态：开始扫描频谱",1,0);
 	GetDlgItem(IDC_BUTTON_VOICE)->SetWindowText("开始广播");
@@ -1833,6 +1842,44 @@ void CRadio_stationDlg::OnButtonScan()
 	int nRows=0,nIndex=0,i=0;
 	m_rssi_list.DeleteAllItems();
 
+	/******************先通知运维把功放配置为接收模式************************/
+	if(SerialPortOpenCloseFlag_YW==TRUE)//只有当运维板串口打开了，才可以使用
+	{
+		if (index_control_times<200)
+		{
+			index_control_times++;
+			if ((index_control_times==0x0d)||(index_control_times==0x24))
+			{
+				index_control_times++;
+			}
+		} 
+		else
+		{
+			index_control_times=0;
+		}
+		frame_board_scan_YW[5]=index_control_times;
+		frame_board_scan_YW[6]=XOR(frame_board_scan_YW,6);
+		if ((frame_board_scan_YW[6]=='$')||(frame_board_scan_YW[6]==0x0d))
+		{
+			frame_board_scan_YW[6]++;//如果异或结果是$或0x0d，则值加一
+		}
+		frame_board_scan_YW[7]='\r';
+		frame_board_scan_YW[8]='\n';
+		CByteArray Array;
+		Array.RemoveAll();
+		Array.SetSize(7+2);
+		
+		for (int i=0;i<(7+2);i++)
+		{
+			Array.SetAt(i,frame_board_scan_YW[i]);
+		}
+		
+		if(m_comm_YW.GetPortOpen())
+		{
+			m_comm_YW.SetOutput(COleVariant(Array));//发送数据
+		}
+		index_resent_data_frame=7;//7:频谱扫描
+	}
 // 	int nColumnCount = m_rssi_list.GetHeaderCtrl()->GetItemCount();		
 // 	for (i=0;i <nColumnCount;i++)
 // 	{
@@ -1851,7 +1898,7 @@ void CRadio_stationDlg::OnButtonScan()
 // 		m_rssi_list.DeleteItem(i);//清空
 // 
 // 	}
-
+	/******************再通知广播板开始频谱扫描************************/
 	index_frequency_point=0;//频点计数器归零
 	if (index_scan_times<200)
 	{
@@ -2068,6 +2115,7 @@ void CRadio_stationDlg::OnTimer(UINT nIDEvent)
 // 			GetDlgItem(IDC_BUTTON_ALARM)->EnableWindow(FALSE);
 // 			GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(FALSE);
 			GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);//运维板丢失连接，不能进行频谱扫描
+			GetDlgItem(IDC_BUTTON_BOARD_RST)->EnableWindow(FALSE);
 //			GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(FALSE);
 //			GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(FALSE);
 			
@@ -2157,7 +2205,10 @@ void CRadio_stationDlg::OnDestroy()//选择退出时，托盘区删除图标
 	nid.uCallbackMessage=WM_SHOWTASK;//自定义的消息名称 
 	nid.hIcon=LoadIcon(AfxGetInstanceHandle(),MAKEINTRESOURCE(IDR_MAINFRAME)); 
 	strcpy(nid.szTip,"程序名称");    //信息提示条为“计划任务提醒” 
-	Shell_NotifyIcon(NIM_DELETE,&nid);    //在托盘区删除图标 
+	Shell_NotifyIcon(NIM_DELETE,&nid);    //在托盘区删除图标
+	
+	HANDLE hself = GetCurrentProcess();
+ 	TerminateProcess(hself, 0);
 }
 
 void CRadio_stationDlg::OnButtonVoice() 
@@ -2349,8 +2400,45 @@ void CRadio_stationDlg::OnButtonBoardReset()
 {
 	// TODO: Add your control notification handler code here
 	//连接串口1，发送数据帧$rst_0x010x02?
-	//顺便将“打开串口”函数执行两次，相当于关闭并打开串口了
-	index_resent_data_frame=6;//6运维板复位重传帧编号
+	if(SerialPortOpenCloseFlag_YW==TRUE)//只有当运维板串口打开了，才可以使用
+	{
+		if (index_control_times<200)
+		{
+			index_control_times++;
+			if ((index_control_times==0x0d)||(index_control_times==0x24))
+			{
+				index_control_times++;
+			}
+		} 
+		else
+		{
+			index_control_times=0;
+		}
+		frame_board_reset_YW[5]=index_control_times;
+		frame_board_reset_YW[6]=5+0x30;//复位模块 1：有线电话；2：卫星电话；3：3G模块；4：北斗模块；5：广播板；6：其他；
+		frame_board_reset_YW[7]=XOR(frame_board_reset_YW,7);
+		if ((frame_board_reset_YW[7]=='$')||(frame_board_reset_YW[7]==0x0d))
+		{
+			frame_board_reset_YW[7]++;//如果异或结果是$或0x0d，则值加一
+		}
+		frame_board_reset_YW[8]='\r';
+		frame_board_reset_YW[9]='\n';
+		CByteArray Array;
+		Array.RemoveAll();
+		Array.SetSize(8+2);
+		
+		for (int i=0;i<(8+2);i++)
+		{
+			Array.SetAt(i,frame_board_reset_YW[i]);
+		}
+		
+		if(m_comm_YW.GetPortOpen())
+		{
+			m_comm_YW.SetOutput(COleVariant(Array));//发送数据
+		}
+		index_resent_data_frame=6;//6运维板复位重传帧编号
+	}
+	
 }
 
 void CRadio_stationDlg::OnButtonTTS() 
@@ -2498,7 +2586,7 @@ void CRadio_stationDlg::OnButtonConnect_YW()
 		{			
 			m_comm_YW.SetPortOpen(TRUE);//打开串口
 			GetDlgItem(IDC_BUTTON_CONNECTYUNWEI)->SetWindowText("关闭运维串口");
-			m_StatBar->SetText("软件及广播板状态：串口已打开",2,0); //以下类似
+			m_StatBar->SetText("运维板状态：串口已打开",2,0); //以下类似
 
 			m_ctrlIconOpenoff_YW.SetIcon(m_hIconRed);
 			UpdateData();
@@ -2546,10 +2634,10 @@ void CRadio_stationDlg::OnButtonConnect_YW()
 	{
 		SerialPortOpenCloseFlag_YW=FALSE;
 		GetDlgItem(IDC_BUTTON_CONNECTYUNWEI)->SetWindowText("打开运维串口");
-		m_StatBar->SetText("软件及广播板状态：串口已关闭",2,0); //以下类似
+		m_StatBar->SetText("运维板状态：串口已关闭",2,0); //以下类似
 		m_ctrlIconOpenoff_YW.SetIcon(m_hIconOff);
 		m_board_led_YW.SetIcon(m_hIconOff);
-		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡未连接!");
+		GetDlgItem(IDC_STATIC_BOARDCONNECT2)->SetWindowText("运维板未连接！");
 		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_ALARM)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(FALSE);
@@ -2557,9 +2645,10 @@ void CRadio_stationDlg::OnButtonConnect_YW()
 		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(FALSE);
 		GetDlgItem(IDC_SLIDER_POWER)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BUTTON_BOARD_RST)->EnableWindow(FALSE);//关闭复位子板按钮
 		flag_com_init_ack_YW=0;//运维板未连接
 		m_comm_YW.SetPortOpen(FALSE);//关闭串口
-		KillTimer(2);
+		KillTimer(6);
 
 	}
 }
@@ -2615,6 +2704,7 @@ void CRadio_stationDlg::OnComm_YW()
 		GetDlgItem(IDC_STATIC_BOARDCONNECT2)->SetWindowText("运维板已连接!"); 
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);//运维板未连接时，是不能频谱扫描的
 		timer_board_disconnect_times_YW=0;//收到反馈则清零
+		GetDlgItem(IDC_BUTTON_BOARD_RST)->EnableWindow(TRUE);//允许板卡复位
 // 		m_frequency_native=FREQUENCY_TERMINAL_START+(double)frame_receive[7]/10;
 // 		CString strTemp;
 // 		strTemp.Format(_T("%.1f"),m_frequency_native);
@@ -2628,7 +2718,7 @@ void CRadio_stationDlg::OnComm_YW()
 		UpdateData(FALSE);
 		
 	}else if ((flag_com_init_ack_YW==1)&&(frame_receive[1]=='r')&&(frame_receive[2]=='s')&&(frame_receive[3]=='e')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_scan_times)&&(frame_receive[8]==XOR(frame_receive,8)))//复位指定模块
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[8]==XOR(frame_receive,8)))//复位指定模块
 	{
 // 		frequency_buf=76.0+(double)frame_receive[7]/10;
 // 		strTmp.Format("%.1f",frequency_buf);
@@ -2639,7 +2729,7 @@ void CRadio_stationDlg::OnComm_YW()
 // 		m_rssi_list.SetItemText(frame_receive[7],2,strTmp);//设置数据
 // 		m_rssi_list.SendMessage(WM_VSCROLL,SB_BOTTOM,NULL); //随数据滚动
 		
-		switch(frame_receive[7]){
+		switch(frame_receive[7]-0x30){
 		case 1:
 			m_StatBar->SetText("运维板状态：有线电话模块复位完毕",2,0); 
 			break;
@@ -2683,12 +2773,12 @@ void CRadio_stationDlg::OnComm_YW()
 
 
 	}else if ((flag_com_init_ack_YW==1)&&(frame_receive[1]=='s')&&(frame_receive[2]=='c')&&(frame_receive[3]=='a')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_data_times)&&(frame_receive[7]==XOR(frame_receive,7)))//频谱扫描帧反馈信息
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[7]==XOR(frame_receive,7)))//频谱扫描帧反馈信息
 	{
-		m_StatBar->SetText("运维板状态：频谱扫描",2,0);
+		m_StatBar->SetText("运维板状态：配置为频谱扫描模式",2,0);
 		
 		
-	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='r')&&(frame_receive[2]=='s')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
+	}else if ((flag_com_init_ack_YW==1)&&(frame_receive[1]=='r')&&(frame_receive[2]=='s')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
 		&&(frame_receive[5]=='_')&&(frame_receive[6]==0)&&(frame_receive[7]==0)&&(frame_receive[8]==XOR(frame_receive,8)))//重传帧
 	{
 		//	AfxMessageBox("wakaka",MB_OK,0);
@@ -2705,7 +2795,7 @@ void CRadio_stationDlg::OnComm_YW()
 			break;
 
 		}
-		m_StatBar->SetText("软件及广播板状态：子板请求重传",1,0);
+		m_StatBar->SetText("运维板状态：运维板请求重传",2,0);
 	}  
 	else
 	{
@@ -2733,3 +2823,18 @@ void CRadio_stationDlg::OnSelendokComboComselectYw()
 	strTemp.Format(_T("%d"),m_DCom_YW);
 	::WritePrivateProfileString("ConfigInfo","com_r_YW",strTemp,".\\config_radiostation.ini");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

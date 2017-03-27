@@ -17,16 +17,17 @@ static char THIS_FILE[] = __FILE__;
 #define RADIO_ID_END 1073741823
 #define AREA_TERMINAL_ID_START 4353
 #define AREA_TERMINAL_ID_END 262143
+#define FREQUENCY_POINT 0X10//FM可用频点
 
 #define FREQUENCY_TERMINAL_START 76.0//终端通信频点最小值
 #define FREQUENCY_TERMINAL_END 88.0//终端通信频点最大值
 
-unsigned char frame_board_check[7]={'$','r','d','y','_'};//连接检测帧
-unsigned char frame_board_frequency[7]={'$','f','r','e','_'};//频谱检测帧
-unsigned char frame_board_control[7]={'$','c','o','n','_'};//控制帧
+unsigned char frame_board_check[7+2]={'$','r','d','y','_'};//连接检测帧
+unsigned char frame_board_frequency[7+2]={'$','f','r','e','_'};//频谱检测帧
+unsigned char frame_board_control[9+2]={'$','c','o','n','_'};//控制帧
 //unsigned char frame_board_before_gray[168]={0};//格雷编码前的数据帧的比特流
 unsigned char frame_board_after_gray[168*2]={0};//格雷编码后的数据帧的比特流
-unsigned char frame_board_data[400]={'$','d','a','t','_'};//发送数据帧
+unsigned char frame_board_data[400+2]={'$','d','a','t','_'};//发送数据帧
 unsigned char frame_board_bits[1100]={0};//电台终端帧冲区
 unsigned char frame_receive[100]={0};//接收缓冲区
 
@@ -152,6 +153,8 @@ BEGIN_MESSAGE_MAP(CRadio_stationDlg, CDialog)
 	ON_EN_KILLFOCUS(IDC_EDIT_MULTICAST_END, OnKillfocusEditMulticastEnd)
 	ON_CBN_SELENDOK(IDC_COMBO_ALARM_TYPE, OnSelendokComboAlarmType)
 	ON_BN_CLICKED(IDC_BUTTON_ALARM, OnButtonAlarm)
+	ON_EN_KILLFOCUS(IDC_EDIT_BOARD_FREQUENCY, OnKillfocusEditBoardFrequency)
+	ON_BN_CLICKED(IDC_BUTTON_SCAN, OnButtonScan)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -207,14 +210,20 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	frame_board_send_index=5;//子板通信数据帧计数器，前五位被占用
 //	index_before_gray=0;
 	index_after_gray=0;
+	index_frequency_point=0;//频点计数器归零
 
 	m_hIconRed  = AfxGetApp()->LoadIcon(IDI_ICON_RED);
 	m_hIconOff	= AfxGetApp()->LoadIcon(IDI_ICON_OFF);
-	GetDlgItem(IDC_COMBO_COMSELECT)->SetWindowText(_T("COM1"));
-	GetDlgItem(IDC_COMBO_SPEED)->SetWindowText(_T("115200"));
-	GetDlgItem(IDC_COMBO_PARITY)->SetWindowText(_T("NONE"));
-	GetDlgItem(IDC_COMBO_DATABITS)->SetWindowText(_T("8"));
-	GetDlgItem(IDC_COMBO_STOPBITS)->SetWindowText(_T("1"));
+// 	GetDlgItem(IDC_COMBO_COMSELECT)->SetWindowText(_T("COM1"));
+// 	GetDlgItem(IDC_COMBO_SPEED)->SetWindowText(_T("115200"));
+// 	GetDlgItem(IDC_COMBO_PARITY)->SetWindowText(_T("NONE"));
+// 	GetDlgItem(IDC_COMBO_DATABITS)->SetWindowText(_T("8"));
+// 	GetDlgItem(IDC_COMBO_STOPBITS)->SetWindowText(_T("1"));
+	m_Com.SetCurSel(0);
+	m_DataBits.SetCurSel(0);
+	m_Speed.SetCurSel(5);
+	m_StopBits.SetCurSel(0);
+	m_Parity.SetCurSel(0);
 
 	GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_ID)->EnableWindow(FALSE);
@@ -229,6 +238,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	GetDlgItem(IDC_EDIT_UNICAST)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_MULTICAST_START)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_MULTICAST_END)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
 
 	m_comm.SetCommPort(1); //选择com1
 	m_comm.SetInputMode(1); //输入方式为二进制方式
@@ -288,15 +298,15 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	m_rssi_list.ModifyStyle( 0, LVS_REPORT );// 报表模式
 	m_rssi_list.SetExtendedStyle(m_rssi_list.GetExtendedStyle() | LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);// 间隔线+行选中
 	
-	m_rssi_list.InsertColumn(0,"频点(MHz)");
-	m_rssi_list.InsertColumn(1,"RSSI");
+	m_rssi_list.InsertColumn(0,"频点(MHz)", LVCFMT_LEFT, 40);
+	m_rssi_list.InsertColumn(1,"RSSI", LVCFMT_LEFT, 40);
 	
 	CRect rect;
 	m_rssi_list.GetClientRect(rect); //获得当前客户区信息
-	m_rssi_list.SetColumnWidth(0, rect.Width()*2/3); //设置列的宽度。
-	m_rssi_list.SetColumnWidth(1, rect.Width()/3);
-	m_rssi_list.InsertItem(0,"79.4");
-	m_rssi_list.SetItemText(0,1,"44");
+	m_rssi_list.SetColumnWidth(0, rect.Width()*6/11); //设置列的宽度。
+	m_rssi_list.SetColumnWidth(1, rect.Width()*3/11);
+	int nRow = m_rssi_list.InsertItem(0,"79.2");//插入行
+	m_rssi_list.SetItemText(nRow,1,"44");//设置数据
 	
 	LVFINDINFO info;
 	int nIndex;
@@ -542,6 +552,11 @@ void CRadio_stationDlg::OnButtonWakeup()
 	frame_board_send_index+=index_after_gray/4;
 	frame_board_data[frame_board_send_index]=XOR(frame_board_data,frame_board_send_index);
 	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]='\r';
+	frame_board_send_index++;
+	frame_board_data[frame_board_send_index]='\n';
+	frame_board_send_index++;
+
 	if (frame_board_data[frame_board_send_index]=='$')
 	{
 		frame_board_data[frame_board_send_index]++;//如果异或结果是$，则值加一
@@ -737,11 +752,13 @@ void CRadio_stationDlg::OnButtonConnectboard()
 			}
 			frame_board_check[5]=index_wakeup_times;
 			frame_board_check[6]=XOR(frame_board_check,6);
+			frame_board_check[7]='\r';
+			frame_board_check[8]='\n';
 			CByteArray Array;
 			Array.RemoveAll();
-			Array.SetSize(7);
+			Array.SetSize(7+2);
 									
-			for (int i=0;i<7;i++)
+			for (int i=0;i<(7+2);i++)
 			{
 				Array.SetAt(i,frame_board_check[i]);
 			}
@@ -764,6 +781,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_ALARM)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
 		flag_com_init_ack=0;//子板未连接
 		m_comm.SetPortOpen(FALSE);//关闭串口
 
@@ -789,6 +807,8 @@ void CRadio_stationDlg::OnComm1()
 	LONG len,k;
 	BYTE rxdata[2048]; //设置BYTE数组
 	CString strDisp="",strTmp="";
+	int frequency_point=0;//频率扫描的总的频点数
+	double frequency_buf=0;//频点计算
 	
 	if((m_comm.GetCommEvent()==2)) //事件值为2表示接收缓冲区内有字符
 	{
@@ -805,7 +825,7 @@ void CRadio_stationDlg::OnComm1()
 		//			frame_lock=0;
 		//			frame_len[frame_index]=0;
 		
-		
+		frame_index=0;
 		for(k=0;k<len;k++)//将数组转化为CString类型
 		{
 			BYTE bt=*(char*)(rxdata+k);    //字符型
@@ -820,7 +840,8 @@ void CRadio_stationDlg::OnComm1()
 			
 		}
 //		AfxMessageBox(strDisp,MB_OK,0);
-	if ((flag_com_init_ack==0)&&(frame_receive[1]=='o')&&(frame_receive[2]='k'))//首次连接握手
+	if ((flag_com_init_ack==0)&&(frame_receive[1]=='r')&&(frame_receive[2]=='d')&&(frame_receive[3]=='y')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_wakeup_times)&&(frame_receive[7]==XOR(frame_receive,7)))//首次连接握手
 	{
 		flag_com_init_ack=1;
 		m_board_led.SetIcon(m_hIconRed);
@@ -828,10 +849,36 @@ void CRadio_stationDlg::OnComm1()
 		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(TRUE);
-		
+		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
+	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='f')&&(frame_receive[2]=='r')&&(frame_receive[3]=='e')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_scan_times)&&(frame_receive[9]==XOR(frame_receive,9)))//频谱扫描
+	{
+		frequency_buf=76.0+(double)frame_receive[7]/10;
+		strTmp.Format("%.1f",frequency_buf);
+		m_rssi_list.InsertItem(frame_receive[7],strTmp);//插入行
+		strTmp.Format("%d",frame_receive[8]);
+		m_rssi_list.SetItemText(frame_receive[7],1,strTmp);//设置数据
+		m_rssi_list.SendMessage(WM_VSCROLL,SB_BOTTOM,NULL); //随数据滚动
+
+	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='c')&&(frame_receive[2]=='o')&&(frame_receive[3]=='n')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_control_times)&&(frame_receive[7]==XOR(frame_receive,7)))//控制帧
+	{
+		AfxMessageBox("下位机频点配置成功！",MB_OK,0);
+
+
+	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='d')&&(frame_receive[2]=='a')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_data_times)&&(frame_receive[7]==XOR(frame_receive,7)))//数据帧反馈信息
+	{
+		m_board_led.SetIcon(m_hIconRed);
+		GetDlgItem(IDC_STATIC_BOARDCONNECT)->SetWindowText("板卡已连接!");
+		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BUTTON_WAKEUP)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BUTTON_VOICE)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 	} 
 	else
 	{
+		AfxMessageBox("下位机帧有错误！",MB_OK,0);
 	}
 // 		if (framelen==(frame_receive[frame_index][5]*256+frame_receive[frame_index][6]))
 // 		{
@@ -1017,6 +1064,7 @@ void CRadio_stationDlg::OnKillfocusEditFrequence()
 		m_frequency= (double)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);          
 	}else{
 		m_frequency=(int)(m_frequency*10);
+		m_frequency=(double)m_frequency; 
 		m_frequency/=10;
 	}
 	UpdateData(FALSE); 
@@ -1072,8 +1120,36 @@ void CRadio_stationDlg::OnButtonBoardConfig()
 	GetDlgItem(IDC_BUTTON_BOARD_CONFIG)->EnableWindow(FALSE);	
 	UpdateData();
 	CString strTemp;
-	strTemp.Format(_T("%f"),m_frequency_native);
+	strTemp.Format(_T("%.1f"),m_frequency_native);
 	::WritePrivateProfileString("ConfigInfo","frequency_native",strTemp,".\\config_radiostation.ini");
+
+	if (index_control_times<200)
+	{
+		index_control_times++;
+	} 
+	else
+	{
+		index_control_times=0;
+	}
+	frame_board_control[5]=index_control_times;
+	frame_board_control[6]=2;
+	frame_board_control[7]=(unsigned char)((m_frequency_native-FREQUENCY_TERMINAL_START)*10);
+	frame_board_control[8]=XOR(frame_board_control,8);
+	frame_board_control[9]='\r';
+	frame_board_control[10]='\n';
+	CByteArray Array;
+	Array.RemoveAll();
+	Array.SetSize(9+2);
+	
+	for (int i=0;i<(9+2);i++)
+	{
+		Array.SetAt(i,frame_board_control[i]);
+	}
+	
+	if(m_comm.GetPortOpen())
+	{
+		m_comm.SetOutput(COleVariant(Array));//发送数据
+			}
 }
 
 void CRadio_stationDlg::OnKillfocusEditUnicast() 
@@ -1267,4 +1343,77 @@ void CRadio_stationDlg::OnButtonAlarm()
 	{
 		m_comm.SetOutput(COleVariant(Array));//发送数据
 	}	
+}
+
+void CRadio_stationDlg::OnKillfocusEditBoardFrequency() 
+{
+	// TODO: Add your control notification handler code here
+	CString strBufferReadConfig,strtmpReadConfig;
+	UpdateData(TRUE);    
+	if ((m_frequency_native>FREQUENCY_TERMINAL_END) || (m_frequency_native<FREQUENCY_TERMINAL_START))    
+	{        
+		GetPrivateProfileString("ConfigInfo","frequency_native","0",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
+		strBufferReadConfig.ReleaseBuffer();
+		strtmpReadConfig+=","+strBufferReadConfig;
+		m_frequency_native= (double)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);          
+	}else{
+		m_frequency_native=(int)(m_frequency_native*10);
+		m_frequency_native=(double)m_frequency_native;
+		m_frequency_native/=10;
+	}
+	UpdateData(FALSE); 
+}
+
+void CRadio_stationDlg::OnButtonScan() 
+{
+	// TODO: Add your control notification handler code here
+	int nRows=0,nIndex=0,i=0;
+	m_rssi_list.DeleteAllItems();
+
+// 	int nColumnCount = m_rssi_list.GetHeaderCtrl()->GetItemCount();		
+// 	for (i=0;i <nColumnCount;i++)
+// 	{
+// 		m_rssi_list.DeleteColumn(0);
+// 	}
+
+	
+	
+// 	nRows = m_rssi_list.GetItemCount();
+// 	for(i=nRows-1;i>=0;i--)
+// 	{
+// // 		if(m_rssi_list.GetItemText(i, 5).Find("1234") >= 0)
+// // 		{
+// // 			nIndex = i;
+// // 		}
+// 		m_rssi_list.DeleteItem(i);//清空
+// 
+// 	}
+
+
+	index_frequency_point=0;//频点计数器归零
+	if (index_scan_times<200)
+	{
+		index_scan_times++;
+	} 
+	else
+	{
+		index_scan_times=0;
+	}
+	frame_board_frequency[5]=index_scan_times;
+	frame_board_frequency[6]=XOR(frame_board_frequency,6);
+	frame_board_frequency[7]='\r';
+	frame_board_frequency[8]='\n';
+	CByteArray Array;
+	Array.RemoveAll();
+	Array.SetSize(7+2);
+	
+	for (i=0;i<(7+2);i++)
+	{
+		Array.SetAt(i,frame_board_frequency[i]);
+	}
+	
+	if(m_comm.GetPortOpen())
+	{
+		m_comm.SetOutput(COleVariant(Array));//发送数据
+	}
 }

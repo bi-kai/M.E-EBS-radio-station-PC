@@ -43,7 +43,7 @@
 #define IDC_BUTTON_SYS_STOP             1038
 #define IDC_BUTTON_BOARD_MODIFY         1039
 #define IDC_BUTTON_BOARD_CONFIG         1040
-#define IDC_BUTTON1                     1041
+#define IDC_BUTTON_SCAN                 1041
 #define IDC_LIST1                       1042
 
 // Next default values for new objects

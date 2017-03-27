@@ -85,6 +85,8 @@ protected:
 	afx_msg void OnKillfocusEditMulticastEnd();
 	afx_msg void OnSelendokComboAlarmType();
 	afx_msg void OnButtonAlarm();
+	afx_msg void OnKillfocusEditBoardFrequency();
+	afx_msg void OnButtonScan();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -119,6 +121,7 @@ private:
 	int frame_index;//接收缓冲帧的索引
 	int frame_send_index;//发送缓冲区无线帧比特流计数器
 	int frame_board_send_index;//子板通信数据帧计数器
+	int index_frequency_point;//下位机反馈频点计数器
 //	int index_before_gray;//格雷编码前数组索引
 	int index_after_gray;//格雷编码后数组索引
 	unsigned char index_wakeup_times;//连接帧发送次数计数器，上下位机通信，保证每帧数据都不同

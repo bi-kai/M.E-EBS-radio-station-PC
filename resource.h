@@ -23,6 +23,7 @@
 #define IDC_BUTTON_ALARM                1009
 #define IDC_EDIT_WAKEUP_SECONDS         1010
 #define IDC_BUTTON_CONNECTBOARD         1011
+#define IDC_BUTTON_CONNECTYUNWEI        1012
 #define IDC_COMBO_COMSELECT             1018
 #define IDC_STATIC_OPENOFF              1019
 #define IDC_COMBO_SPEED                 1020
@@ -30,16 +31,17 @@
 #define IDC_COMBO_DATABITS              1022
 #define IDC_COMBO_STOPBITS              1023
 #define IDC_COMBO_ALARM_TYPE            1024
-//#define IDC_EDIT_FRAME_COUNTER          1025
+#define IDC_STATIC_YUNWEI               1025
 #define IDC_BUTTON_VOICE                1026
 #define IDC_EDIT_ID                     1027
 #define IDC_BUTTON_MODIFY               1028
 #define IDC_BUTTON_SAVE                 1029
+#define IDC_COMBO_COMSELECT2            1030
 #define IDC_STATIC_BOARDCONNECT         1031
 #define IDC_STATIC_BOARD_LED            1032
 #define IDC_EDIT_FREQUENCE              1033
-//#define IDC_STATIC_FRAMESEND_STATE      1035
-//#define IDC_STATIC_FRAMESEND_LED        1036
+#define IDC_STATIC_BOARDCONNECT2        1034
+#define IDC_STATIC_BOARD_LED2           1035
 #define IDC_EDIT_BOARD_FREQUENCY        1037
 #define IDC_BUTTON_SYS_STOP             1038
 #define IDC_BUTTON_                     1038
@@ -56,6 +58,9 @@
 #define IDC_RADIO_SATALLITE             1048
 #define IDC_RADIO_BEIDOU                1049
 #define IDC_RADIO_BROAD                 1050
+#define IDC_SLIDER1                     1051
+#define IDC_SLIDER_POWER                1051
+#define IDC_STATIC_POWER                1052
 
 // Next default values for new objects
 // 
@@ -63,7 +68,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1047
+#define _APS_NEXT_CONTROL_VALUE         1053
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -26,6 +26,7 @@ public:
 // Dialog Data
 	//{{AFX_DATA(CRadio_stationDlg)
 	enum { IDD = IDD_RADIO_STATION_DIALOG };
+	CSliderCtrl	m_POWER_SELECT;
 	CListCtrl	m_rssi_list;
 	CComboBox	m_alarm_command;
 	CStatic	m_board_connect;
@@ -45,6 +46,7 @@ public:
 	double	m_unicast_terminal_id;
 	double	m_multi_terminal_id_start;
 	double	m_multi_terminal_id_end;
+	CString	m_power_num;
 	//}}AFX_DATA
 
 	// ClassWizard generated virtual function overrides
@@ -97,6 +99,9 @@ protected:
 	afx_msg void OnButtonTTS();
 	afx_msg void OnButtonNMIC();
 	afx_msg void OnButtonAdvanced();
+	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	afx_msg void OnCancelMode();
+	afx_msg void OnReleasedcaptureSliderPower(NMHDR* pNMHDR, LRESULT* pResult);
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

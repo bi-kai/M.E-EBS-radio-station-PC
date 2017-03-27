@@ -35,6 +35,8 @@ static char THIS_FILE[] = __FILE__;
 
 #define TIMER2_MS 30000//定时器2中断间隔，30s查询一次子板的连接状况
 
+#define BORD_HIDE 206//高级配置，隐藏的界面区域
+
 unsigned char frame_board_check[7+2]={'$','r','d','y','_'};//连接检测帧
 unsigned char frame_board_frequency[7+2]={'$','f','r','e','_'};//频谱检测帧
 unsigned char frame_board_control[9+2]={'$','c','o','n','_'};//控制帧
@@ -106,6 +108,7 @@ CRadio_stationDlg::CRadio_stationDlg(CWnd* pParent /*=NULL*/)
 	m_unicast_terminal_id = 0.0;
 	m_multi_terminal_id_start = 0.0;
 	m_multi_terminal_id_end = 0.0;
+	m_power_num = _T("");
 	//}}AFX_DATA_INIT
 	// Note that LoadIcon does not require a subsequent DestroyIcon in Win32
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
@@ -115,6 +118,7 @@ void CRadio_stationDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CRadio_stationDlg)
+	DDX_Control(pDX, IDC_SLIDER_POWER, m_POWER_SELECT);
 	DDX_Control(pDX, IDC_LIST1, m_rssi_list);
 	DDX_Control(pDX, IDC_COMBO_ALARM_TYPE, m_alarm_command);
 	DDX_Control(pDX, IDC_STATIC_BOARDCONNECT, m_board_connect);
@@ -134,6 +138,7 @@ void CRadio_stationDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_UNICAST, m_unicast_terminal_id);
 	DDX_Text(pDX, IDC_EDIT_MULTICAST_START, m_multi_terminal_id_start);
 	DDX_Text(pDX, IDC_EDIT_MULTICAST_END, m_multi_terminal_id_end);
+	DDX_Text(pDX, IDC_STATIC_POWER, m_power_num);
 	//}}AFX_DATA_MAP
 }
 
@@ -175,6 +180,9 @@ BEGIN_MESSAGE_MAP(CRadio_stationDlg, CDialog)
 	ON_BN_CLICKED(IDC_BUTTON_TTS, OnButtonTTS)
 	ON_BN_CLICKED(IDC_BUTTON_NMIC, OnButtonNMIC)
 	ON_BN_CLICKED(IDC_BUTTON_ADVANCED, OnButtonAdvanced)
+	ON_WM_HSCROLL()
+	ON_WM_CANCELMODE()
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_POWER, OnReleasedcaptureSliderPower)
 	//}}AFX_MSG_MAP
 	ON_MESSAGE(WM_SHOWTASK,OnShowTask)
 END_MESSAGE_MAP()
@@ -268,6 +276,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
 	GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(FALSE);
+	GetDlgItem(IDC_SLIDER_POWER)->EnableWindow(FALSE);
 
 	m_comm.SetCommPort(1); //选择com1
 	m_comm.SetInputMode(1); //输入方式为二进制方式
@@ -288,7 +297,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 	flag_button_advanced=0;
 	CRect rect1;
 	GetWindowRect(rect1);
-	rect1.bottom -= 210;
+	rect1.bottom -= BORD_HIDE;
 	MoveWindow(rect1);
 /****************************状态栏**************************************/
 	m_StatBar=new CStatusBarCtrl;//状态栏
@@ -330,6 +339,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		::WritePrivateProfileString("ConfigInfo","databits_r","8",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","speed_r","115200",".\\config_radiostation.ini");
 		::WritePrivateProfileString("ConfigInfo","stopbits_r","1",".\\config_radiostation.ini");
+		::WritePrivateProfileString("ConfigInfo","POWER_SELECT","8",".\\config_radiostation.ini");
 
 	}
 		CString strBufferReadConfig,strtmpReadConfig;
@@ -360,6 +370,11 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		strtmpReadConfig+=","+strBufferReadConfig;
 		m_frequency_native= (double)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
 
+		GetPrivateProfileString("ConfigInfo","POWER_SELECT","8",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");//发射功率配置
+		strBufferReadConfig.ReleaseBuffer();
+		strtmpReadConfig+=","+strBufferReadConfig;
+		m_power_num=strBufferReadConfig;
+		m_POWER_SELECT.SetPos((int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig));
 		/**********串口配置**********************/
 		GetPrivateProfileString("ConfigInfo","com_r","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
@@ -385,6 +400,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 		strBufferReadConfig.ReleaseBuffer();
 		strtmpReadConfig+=","+strBufferReadConfig;
 		m_DStopbits= (int)atof((char *)(LPTSTR)(LPCTSTR)strBufferReadConfig);
+
 		///////////////////////////////////////////////////////////////////////////
 		GetPrivateProfileString("ConfigInfo","com","1",strBufferReadConfig.GetBuffer(MAX_PATH),MAX_PATH,".\\config_radiostation.ini");
 		strBufferReadConfig.ReleaseBuffer();
@@ -472,7 +488,7 @@ BOOL CRadio_stationDlg::OnInitDialog()
 // 		//::AfxMessageBox("没找到执行程序，自动运行失败");  
 // 		//exit(0);  
 // 	}  
-	
+	m_POWER_SELECT.SetRange(1,63);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -1051,6 +1067,7 @@ void CRadio_stationDlg::OnButtonConnectboard()
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(FALSE);
 		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(FALSE);
+		GetDlgItem(IDC_SLIDER_POWER)->EnableWindow(FALSE);
 		flag_com_init_ack=0;//子板未连接
 		m_comm.SetPortOpen(FALSE);//关闭串口
 		KillTimer(2);
@@ -1112,7 +1129,7 @@ void CRadio_stationDlg::OnComm1()
 //		AfxMessageBox(strDisp,MB_OK,0);
 
 	if (((flag_com_init_ack==0)||(timer_board_disconnect_times!=0))&&(frame_receive[1]=='r')&&(frame_receive[2]=='d')&&(frame_receive[3]=='y')&&(frame_receive[4]=='_')
-		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_wakeup_times)&&(frame_receive[8]==XOR(frame_receive,8)))//首次连接握手，上位机软件接收时，不用避免$,\r,\n
+		&&(frame_receive[5]=='_')&&(frame_receive[6]==index_wakeup_times)&&(frame_receive[9]==XOR(frame_receive,9)))//首次连接握手，上位机软件接收时，不用避免$,\r,\n
 	{
 		flag_com_init_ack=1;
 		m_board_led.SetIcon(m_hIconRed);
@@ -1122,11 +1139,18 @@ void CRadio_stationDlg::OnComm1()
 		GetDlgItem(IDC_BUTTON_SCAN)->EnableWindow(TRUE);
 		GetDlgItem(IDC_COMBO_ALARM_TYPE)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_IDENTIFY)->EnableWindow(TRUE);
+		GetDlgItem(IDC_SLIDER_POWER)->EnableWindow(TRUE);
 		timer_board_disconnect_times=0;//收到反馈则清零
 		m_frequency_native=FREQUENCY_TERMINAL_START+(double)frame_receive[7]/10;
 		CString strTemp;
 		strTemp.Format(_T("%.1f"),m_frequency_native);
 		::WritePrivateProfileString("ConfigInfo","frequency_native",strTemp,".\\config_radiostation.ini");
+
+		strTemp.Format(_T("%.1f"),frame_receive[8]);
+		::WritePrivateProfileString("ConfigInfo","POWER_SELECT",strTemp,".\\config_radiostation.ini");
+		
+		m_POWER_SELECT.SetPos(frame_receive[8]);
+		m_power_num.Format("%d",frame_receive[8]);
 		UpdateData(FALSE);
 		
 	}else if ((flag_com_init_ack==1)&&(frame_receive[1]=='f')&&(frame_receive[2]=='r')&&(frame_receive[3]=='e')&&(frame_receive[4]=='_')
@@ -1498,7 +1522,7 @@ void CRadio_stationDlg::OnButtonBoardConfig()
 	if(m_comm.GetPortOpen())
 	{
 		m_comm.SetOutput(COleVariant(Array));//发送数据
-			}
+	}
 }
 
 void CRadio_stationDlg::OnKillfocusEditUnicast() 
@@ -2234,7 +2258,7 @@ void CRadio_stationDlg::OnButtonAdvanced()
 		flag_button_advanced=1;
 		CRect rect1;
 		GetWindowRect(rect1);
-		rect1.bottom += 190;
+		rect1.bottom += BORD_HIDE;
 		MoveWindow(rect1);
 
 	} 
@@ -2243,8 +2267,82 @@ void CRadio_stationDlg::OnButtonAdvanced()
 		flag_button_advanced=0;
 		CRect rect1;
 		GetWindowRect(rect1);
-		rect1.bottom -= 190;
+		rect1.bottom -= BORD_HIDE;
 		MoveWindow(rect1);
 
 	}
+}
+
+void CRadio_stationDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
+{
+	// TODO: Add your message handler code here and/or call default
+// 	if (nSBCode == SB_THUMBTRACK)
+//     {
+// 		if (pScrollBar->m_hWnd == m_POWER_SELECT.m_hWnd)
+// 		{
+// 
+// 		}
+//     }
+
+	CDialog::OnHScroll(nSBCode, nPos, pScrollBar);
+}
+
+void CRadio_stationDlg::OnCancelMode() 
+{
+	CDialog::OnCancelMode();
+	
+	// TODO: Add your message handler code here
+	
+}
+
+void CRadio_stationDlg::OnReleasedcaptureSliderPower(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	// TODO: Add your control notification handler code here
+	int nPos=m_POWER_SELECT.GetPos();
+	CString strTemp;
+	strTemp.Format(_T("%.1f"),nPos);
+	::WritePrivateProfileString("ConfigInfo","POWER_SELECT",strTemp,".\\config_radiostation.ini");
+		
+	if (index_control_times<200)
+	{
+		index_control_times++;
+		if ((index_control_times==0x0d)||(index_control_times==0x24))
+		{
+				index_control_times++;
+		}
+	} 
+	else
+	{
+		index_control_times=0;
+	}
+	frame_board_control[5]=index_control_times;
+	frame_board_control[6]=5;//调整发射功率
+		
+	frame_board_control[7]=(unsigned char)(nPos+13);//将滑块位置抬高13，避免出现帧尾0x0d
+	frame_board_control[8]=XOR(frame_board_control,8);
+	if ((frame_board_control[8]=='$')||(frame_board_control[8]==0x0d))
+	{
+		frame_board_control[8]++;//如果异或结果是$或0x0d，则值加一
+	}
+	frame_board_control[9]='\r';
+	frame_board_control[10]='\n';
+	CByteArray Array;
+	Array.RemoveAll();
+	Array.SetSize(9+2);
+		
+	for (int i=0;i<(9+2);i++)
+	{
+		Array.SetAt(i,frame_board_control[i]);
+	}
+	
+	if(m_comm.GetPortOpen())
+	{
+		m_comm.SetOutput(COleVariant(Array));//发送数据
+	}
+				
+	m_power_num.Format("%d",nPos);
+	UpdateData(FALSE);
+
+
+	*pResult = 0;
 }

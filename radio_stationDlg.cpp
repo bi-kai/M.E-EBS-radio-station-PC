@@ -1383,7 +1383,22 @@ void CRadio_stationDlg::OnComm1()
 			m_comm_YW.SetOutput(COleVariant(Array));//发送数据
 		}
 		m_StatBar->SetText("广播板状态：广播板应答申请，回传运维板",1,0);
-		OnButtonVoice();//一次调用，开始广播；再次调用，结束广播；循环往复	
+		static int applay_over=0;//申请广播结束标志位。0:初始状态,未申请;2：已结束；1：已申请；
+		if ((frame_board_ppp[6]==1)||(frame_board_ppp[6]==3))
+		{	
+			if((applay_over==0)||(applay_over==2)){//未初始化或者上一次已经结束
+				OnButtonVoice();//一次调用，开始广播；再次调用，结束广播；循环往复
+				applay_over=1;
+			}
+		}else if (frame_board_ppp[6]==2)
+		{
+			if (applay_over==1)
+			{
+				applay_over=2;
+				OnButtonVoice();//一次调用，开始广播；再次调用，结束广播；循环往复
+			} 
+		}
+			
 		
 	}
 	else if ((flag_com_init_ack==1)&&(frame_receive[1]=='r')&&(frame_receive[2]=='s')&&(frame_receive[3]=='t')&&(frame_receive[4]=='_')
@@ -2422,7 +2437,7 @@ void CRadio_stationDlg::OnButtonVoice()
 // 		OnButtonAlarm();
 // 		Sleep(450);
 // 		OnButtonAlarm();
-		SetTimer(5,(m_wakeup_time*1100),NULL);//定时器中通知下位机停止广播。留点时间给子板发反馈帧。定时时间为估计的结束帧发送时间
+		SetTimer(5,(m_wakeup_time*1100*2),NULL);//定时器中通知下位机停止广播。留点时间给子板发反馈帧。定时时间为估计的结束帧发送时间
 		
 	}
 	
